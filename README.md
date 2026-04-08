@@ -3,9 +3,16 @@
 [![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fmrxenginner%2FreVC%2Fbadge%3Fref%3Dmiami&style=flat)](https://actions-badge.atrox.dev/mrxenginner/reVC/goto?ref=miami)
 <a href="https://discord.gg/RFNbjsUMGg"><img src="https://img.shields.io/badge/discord-join-7289DA.svg?logo=discord&longCache=true&style=flat" /></a>
 
-## Intro
+# 🤖 GTA Vice City: reVC - 100% AI-Engineered Ultra Performance Mod 🌴
 
-In this repository you'll find the fully reversed source code for GTA VC ([miami](https://github.com/mrxenginner/reVC/tree/miami/) branch).
+> ⚠️ **REVOLUTIONARY APPROACH: 100% AI-GENERATED CODE** ⚠️
+> **Every single engine optimization, C++ logic rewrite, and new feature in this fork was exclusively designed, analyzed, and programmed by Artificial Intelligence (Gemini).** The human author acted strictly as a project director, tester, and compiler. This project stands as a proof-of-concept demonstrating how AI can deep-dive into complex, legacy reverse-engineered C++ game engines to surgically extract maximum performance.
+
+## Intro & Objectives
+
+In this repository you'll find a heavily modified and optimized version of the fully reversed source code for GTA VC ([miami](https://github.com/mrxenginner/reVC/tree/miami/) branch).
+
+This specific fork was born with a clear goal: **to make GTA Vice City run smoothly and stably on very low-end PCs (such as netbooks or systems with only 2GB of RAM)**. To achieve this, the AI analyzed the RenderWare engine and successfully eliminated massive bottlenecks, disabled unnecessary background mathematical calculations, and introduced aggressive Level of Detail (LOD) mechanics that the original developers left on the table.
 
 It has been tested and works on Windows, Android, Linux, MacOS and FreeBSD, on x86, amd64, arm and arm64.\
 Rendering is handled either by original RenderWare (D3D8)
@@ -13,6 +20,24 @@ or the reimplementation [librw](https://github.com/aap/librw) (D3D9, OpenGL 2.1 
 Audio is done with MSS (using dlls from original GTA) or OpenAL.
 
 We cannot build for PS2 or Xbox yet. If you're interested in doing so, get in touch with us.
+
+## ⚡ 100% AI-Driven Performance Optimizations
+
+* **Pedestrian Time-Slicing:** NPC AI and skeletal deformation (Skinning) now update at half the framerate if they are more than 20 meters away. Massive CPU savings in crowded areas.
+* **Aggressive AI Culling:** Distant pedestrians no longer calculate "Head-Tracking" (turning their necks to look at objects) or expensive "Raycasting" to dodge walls. They simply walk in a straight line.
+* **Vehicle Distance Blackout (LOD):** Traffic vehicles further than 50 meters no longer calculate the visual rotation of their 4 wheels, exhaust smoke, or damage states.
+* **Optimized Rain:** Removed the expensive CPU loop that calculated raindrop collisions against all polygons of every single car in the city. Now, it only rains on the player's car.
+* **Dynamic Shadows Annihilated:** Disabled the night shadows cast by traffic car headlights to save *Fill-Rate* on older graphics cards. Only the player's car illuminates the asphalt. Unused dynamic point light arrays were also emptied to save CPU cycles.
+* **Memory Management (Streaming):** RAM cache limit forced to 256MB, tricking the engine into stopping the constant and heavy deletion/loading of buildings behind the camera.
+* **Mathematical Optimizations:** Replaced heavy CPU functions (`Sqrt`) with "Squared Distance" (`MagnitudeSqr`) in the explosion and world collision engines to prevent stuttering during chaotic moments.
+
+## 🎮 AI-Coded New Features Added
+
+* **True First-Person Camera (Vehicles):** Drive from Tommy's perspective! A dynamic first-person view has been fully programmed by AI, adjusting perfectly depending on the vehicle:
+  * Cars feature a comfortable view from the driver's seat.
+  * Aerodynamic leaning posture when driving sports bikes (PCJ-600).
+  * Upright posture on dirt bikes (Sanchez) and reclined on Choppers (Freeway).
+* **Crash-Proof Shielding:** AI patched texture destruction functions (Garbage Collection) to prevent unexpected engine crashes when loading new save files.
 
 ## Installation
 
@@ -34,7 +59,7 @@ We cannot build for PS2 or Xbox yet. If you're interested in doing so, get in to
 ![screen_ 1613086989](https://user-images.githubusercontent.com/1521437/107714103-f38a7e00-6ccc-11eb-88a3-c8c2033c51d6.png)
 ![screen_ 1613087193](https://user-images.githubusercontent.com/1521437/107714106-f4bbab00-6ccc-11eb-96a9-13821d9b9684.png)
 
-## Improvements
+## Standard reVC Improvements
 
 We have implemented a number of changes and improvements to the original game.
 They can be configured in `core/config.h`.
@@ -106,13 +131,13 @@ For Linux using premake, proceed: [Building on Linux](https://github.com/mrxengi
 <details><summary>Linux Conan</summary>
 
 Install python and conan, and then run build.
-```
+
 conan export vendor/librw librw/master@
 mkdir build
 cd build
 conan install .. reVC/miami@ -if build -o reVC:audio=openal -o librw:platform=gl3 -o librw:gl3_gfxlib=glfw --build missing -s reVC:build_type=RelWithDebInfo -s librw:build_type=RelWithDebInfo
 conan build .. -if build -bf build -pf package
-```
+
 </details>
 
 <details><summary>MacOS Premake</summary>
@@ -201,4 +226,4 @@ Since then we have started reLCS, which is currently work in progress.
 We don't feel like we're in a position to give this code a license.\
 The code should only be used for educational, documentation and modding purposes.\
 We do not encourage piracy or commercial use.\
-Please keep derivate work open source and give proper credit.
+Please keep derivate work open source and give proper credit
