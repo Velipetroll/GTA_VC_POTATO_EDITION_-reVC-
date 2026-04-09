@@ -31,28 +31,14 @@ CDamageManager::FuckCarCompletely(void)
 {
 	int i;
 
-	m_wheelStatus[0] = WHEEL_STATUS_MISSING;
-	// wheels 1-3 not reset?
+	// Cambia WHEEL_STATUS_MISSING por WHEEL_STATUS_BURST (1)
+	m_wheelStatus[0] = WHEEL_STATUS_BURST;
 
-	for(i = 0; i < ARRAY_SIZE(m_doorStatus); i++)
-		m_doorStatus[i] = DOOR_STATUS_MISSING;
+	for (i = 0; i < ARRAY_SIZE(m_doorStatus); i++)
+		// Cambia DOOR_STATUS_MISSING por DOOR_STATUS_DAMAGED (1)
+		m_doorStatus[i] = 1;
 
-	for(i = 0; i < 3; i++){
-#ifdef FIX_BUGS
-		ProgressPanelDamage(VEHBUMPER_FRONT);
-		ProgressPanelDamage(VEHBUMPER_REAR);
-#else
-		// this can't be right
-		ProgressPanelDamage(COMPONENT_BUMPER_FRONT);
-		ProgressPanelDamage(COMPONENT_BUMPER_REAR);
-#endif
-	}
-	// Why set to no damage?
-#ifndef FIX_BUGS
-	m_lightStatus = 0;
-	m_panelStatus = 0;
-#endif
-	SetEngineStatus(250);
+	// ...
 }
 
 bool
@@ -63,10 +49,10 @@ CDamageManager::ApplyDamage(tComponent component, float damage, float unused)
 
 	GetComponentGroup(component, &group, &subComp);
 	damage *= G_aComponentDamage[group];
-	if(component == COMPONENT_PANEL_WINDSCREEN)
+	if (component == COMPONENT_PANEL_WINDSCREEN)
 		damage *= 0.6f;
-	if(damage > 150.0f){
-		switch(group){
+	if (damage > 150.0f) {
+		switch (group) {
 		case COMPGROUP_WHEEL:
 			ProgressWheelDamage(subComp);
 			break;
@@ -75,19 +61,20 @@ CDamageManager::ApplyDamage(tComponent component, float damage, float unused)
 			ProgressDoorDamage(subComp);
 			break;
 		case COMPGROUP_BONNET:
-			if(damage > 220.0f)
+			if (damage > 220.0f)
 				ProgressEngineDamage();
 			ProgressDoorDamage(subComp);
 			break;
 		case COMPGROUP_PANEL:
-			// so windscreen is a light?
-			SetLightStatus((eLights)subComp, 1);
-			// fall through
+			// --- ELIMINADO: ya no se rompen luces ni avanza el daño de panel ---
+			// SetLightStatus((eLights)subComp, 1);   // Comentado / eliminado
+			// NO hay fall through hacia COMPGROUP_BUMPER para paneles
+			break;  // Salimos del switch sin hacer nada
 		case COMPGROUP_BUMPER:
-			if(damage > 220.0f &&
-			   (component == COMPONENT_PANEL_FRONT_LEFT ||
-			    component == COMPONENT_PANEL_FRONT_RIGHT ||
-			    component == COMPONENT_PANEL_WINDSCREEN))
+			if (damage > 220.0f &&
+				(component == COMPONENT_PANEL_FRONT_LEFT ||
+					component == COMPONENT_PANEL_FRONT_RIGHT ||
+					component == COMPONENT_PANEL_WINDSCREEN))
 				ProgressEngineDamage();
 			ProgressPanelDamage(subComp);
 			break;
@@ -97,7 +84,6 @@ CDamageManager::ApplyDamage(tComponent component, float damage, float unused)
 	}
 	return false;
 }
-
 bool
 CDamageManager::GetComponentGroup(tComponent component, tComponentGroup *componentGroup, uint8 *subComp)
 {
@@ -148,11 +134,13 @@ bool
 CDamageManager::ProgressDoorDamage(uint8 door)
 {
 	int status = GetDoorStatus(door);
-	if(status == PANEL_STATUS_MISSING)
+	// Evitar que alcance DOOR_STATUS_MISSING (2)
+	if (status >= DOOR_STATUS_MISSING - 1)
 		return false;
-	SetDoorStatus(door, status+1);
+	SetDoorStatus(door, status + 1);
 	return true;
 }
+
 
 void
 CDamageManager::SetPanelStatus(int32 panel, uint32 status)
@@ -169,10 +157,6 @@ CDamageManager::GetPanelStatus(int32 panel)
 bool
 CDamageManager::ProgressPanelDamage(uint8 panel)
 {
-	int status = GetPanelStatus(panel);
-	if(status == DOOR_STATUS_MISSING)
-		return false;
-	SetPanelStatus(panel, status+1);
 	return true;
 }
 
@@ -204,9 +188,10 @@ bool
 CDamageManager::ProgressWheelDamage(uint8 wheel)
 {
 	int status = GetWheelStatus(wheel);
-	if(status == WHEEL_STATUS_MISSING)
+	// Evitar que alcance WHEEL_STATUS_MISSING (2)
+	if (status >= WHEEL_STATUS_MISSING - 1)
 		return false;
-	SetWheelStatus(wheel, status+1);
+	SetWheelStatus(wheel, status + 1);
 	return true;
 }
 

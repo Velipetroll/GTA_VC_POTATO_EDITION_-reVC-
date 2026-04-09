@@ -369,6 +369,8 @@ CPed::CPed(uint32 pedType) : m_pedIK(this)
 	m_lastComment = UINT32_MAX;
 }
 
+
+
 CPed::~CPed(void)
 {
 #ifdef USE_CUTSCENE_SHADOW_FOR_PED
@@ -1046,22 +1048,31 @@ CPed::CanUseTorsoWhenLooking(void)
 void
 CPed::SetLookFlag(float direction, bool keepTryingToLook, bool cancelPrevious)
 {
-	if (m_lookTimer < CTimer::GetTimeInMilliseconds() || cancelPrevious) {
-		bIsLooking = true;
-		bIsRestoringLook = false;
-		m_fLookDirection = direction;
-		m_pLookTarget = nil;
-		m_lookTimer = 0;
-		bKeepTryingToLook = keepTryingToLook;
-		if (CanUseTorsoWhenLooking()) {
-			m_pedIK.m_flags &= ~CPedIK::LOOKAROUND_HEAD_ONLY;
+	// --- OPTIMIZACIÓN EXTREMA: Bloquear Head-Tracking por distancia ---
+	if (!IsPlayer()) {
+		float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) {
+			// Si está a más de 20 metros, ignoramos la orden de voltear la cabeza
+			return;
 		}
 	}
 }
 
+	// --- FIN OPTIMIZACIÓN ---
+
+	// ... (Aquí continúa el código original de esta función)
+
 void
 CPed::SetLookFlag(CEntity *target, bool keepTryingToLook, bool cancelPrevious)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Bloquear Head-Tracking por distancia ---
+	if (!IsPlayer()) {
+		float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) {
+			// Si está a más de 20 metros, ignoramos la orden de voltear la cabeza
+			return;
+		}
+	}
 	if (m_lookTimer < CTimer::GetTimeInMilliseconds() || cancelPrevious) {
 		bIsLooking = true;
 		bIsRestoringLook = false;
@@ -1414,6 +1425,16 @@ CPed::WillChat(CPed *stranger)
 void
 CPed::CalculateNewVelocity(void)
 {
+	if (!IsPlayer()) {
+		// Usamos 625.0f (25 metros al cuadrado) para darle un poco más de margen 
+		// que al cuello, para que no se choquen si los vas persiguiendo de lejos.
+		float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+		if (distSqr > 2000.0f) {
+			// Abortamos la función. El peatón mantendrá su inercia actual y 
+			// caminará recto sin escanear el mapa en busca de colisiones.
+			return;
+		}
+	}
 	if (IsPedInControl()) {
 		float headAmount = DEGTORAD(m_headingRate) * CTimer::GetTimeStep();
 		m_fRotationCur = CGeneral::LimitRadianAngle(m_fRotationCur);
@@ -4774,16 +4795,34 @@ CPed::ReplaceWeaponWhenExitingVehicle(void)
 void
 CPed::PreRender(void)
 {
-	CShadows::StoreShadowForPed(this,
-		CTimeCycle::m_fShadowDisplacementX[CTimeCycle::m_CurrentStoredValue], CTimeCycle::m_fShadowDisplacementY[CTimeCycle::m_CurrentStoredValue],
-		CTimeCycle::m_fShadowFrontX[CTimeCycle::m_CurrentStoredValue], CTimeCycle::m_fShadowFrontY[CTimeCycle::m_CurrentStoredValue],
-		CTimeCycle::m_fShadowSideX[CTimeCycle::m_CurrentStoredValue], CTimeCycle::m_fShadowSideY[CTimeCycle::m_CurrentStoredValue]);
+	// Ya aniquilaste las sombras, así que comentamos esta línea para ahorrar el costo 
+	// de enviar los parámetros a la función vacía.
+	// CShadows::StoreShadowForPed(...); 
 
+	// OPTIMIZACIÓN EXTREMA: Distancia al cuadrado para LOD (Evita raíces cuadradas)
+	float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+
+	// Si NO es el jugador y está a más de 20 metros (20*20 = 400)
+	bool bIsDistant = (!IsPlayer() && distSqr > 400.0f);
+
+	if (bIsDistant) {
+		// TIME-SLICING: Actualizamos los huesos solo 1 de cada 2 frames.
+		// A más de 20 metros, el ojo humano no nota que la animación va a 30 FPS en lugar de 60.
+		if ((CTimer::GetFrameCounter() + m_randomSeed) % 2 == 0) {
+			UpdateRpHAnim();
+		}
+		// Abortamos aquí. No gastamos CPU calculando viento, lluvia o partes del cuerpo 
+		// volando para peatones que se ven del tamaño de una hormiga.
+		return;
+	}
+
+	// Si está cerca (o es el jugador), actualizamos sus huesos normalmente
 	UpdateRpHAnim();
 
 	bool bIsWindModifierTurnedOn = false;
 	float fAnyDirectionShift = 1.0f;
 	bool bIsPedDrivingBikeOrOpenTopCar = false;
+
 	if (IsPlayer() && CWindModifiers::FindWindModifier(GetPosition(), &fAnyDirectionShift, &fAnyDirectionShift)
 		&& !CCullZones::PlayerNoRain() && GetPedState() != PED_DRIVING)
 		bIsWindModifierTurnedOn = true;
@@ -4804,52 +4843,56 @@ CPed::PreRender(void)
 			}
 		}
 
-		if (bIsWindModifierTurnedOn) 
+		if (bIsWindModifierTurnedOn)
 			fWindMult = Min(fWindMult, Abs(fAnyDirectionShift - 1.0f));
 
-		RpHAnimHierarchy* hier = GetAnimHierarchyFromSkinClump(GetClump());
-		int32 idx;
-		RwV3d scale;
-		float fScaleOffset;
+		// OPTIMIZACIÓN: Solo ejecutamos esta montaña de multiplicaciones matriciales 
+		// si el multiplicador de viento es lo suficientemente fuerte para notarse.
+		if (fWindMult > 0.01f) {
+			RpHAnimHierarchy* hier = GetAnimHierarchyFromSkinClump(GetClump());
+			int32 idx;
+			RwV3d scale;
+			float fScaleOffset;
 
-		fScaleOffset = fWindMult * 0.2f;
-		scale.x = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
-		scale.y = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
-		scale.z = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			fScaleOffset = fWindMult * 0.2f;
+			scale.x = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			scale.y = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			scale.z = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
 
-		idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_NECK));
-		RwMatrix* neck = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
-		RwMatrixScale(neck, &scale, rwCOMBINEPRECONCAT);
+			idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_NECK));
+			RwMatrix* neck = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
+			RwMatrixScale(neck, &scale, rwCOMBINEPRECONCAT);
 
-		fScaleOffset = fWindMult * 0.1f;
-		scale.x = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
-		scale.y = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
-		scale.z = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			fScaleOffset = fWindMult * 0.1f;
+			scale.x = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			scale.y = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			scale.z = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
 
-		idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_CLAVICLEL));
-		RwMatrix* clavicleL = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
-		RwMatrixScale(clavicleL, &scale, rwCOMBINEPRECONCAT);
-		
-		idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_CLAVICLER));
-		RwMatrix* clavicleR = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
-		RwMatrixScale(clavicleR, &scale, rwCOMBINEPRECONCAT);
+			idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_CLAVICLEL));
+			RwMatrix* clavicleL = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
+			RwMatrixScale(clavicleL, &scale, rwCOMBINEPRECONCAT);
 
-		idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_MID));
-		RwMatrix* mid = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
-		RwMatrixScale(mid, &scale, rwCOMBINEPRECONCAT);
+			idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_CLAVICLER));
+			RwMatrix* clavicleR = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
+			RwMatrixScale(clavicleR, &scale, rwCOMBINEPRECONCAT);
 
-		fScaleOffset = fWindMult * 0.2f;
-		scale.x = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
-		scale.y = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
-		scale.z = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_MID));
+			RwMatrix* mid = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
+			RwMatrixScale(mid, &scale, rwCOMBINEPRECONCAT);
 
-		idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_UPPERARML));
-		RwMatrix* upperArmL = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
-		RwMatrixScale(upperArmL, &scale, rwCOMBINEPRECONCAT);
+			fScaleOffset = fWindMult * 0.2f;
+			scale.x = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			scale.y = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
+			scale.z = CGeneral::GetRandomNumberInRange(1.0f - fScaleOffset, 1.0f + fScaleOffset);
 
-		idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_UPPERARMR));
-		RwMatrix* upperArmR = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
-		RwMatrixScale(upperArmR, &scale, rwCOMBINEPRECONCAT);
+			idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_UPPERARML));
+			RwMatrix* upperArmL = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
+			RwMatrixScale(upperArmL, &scale, rwCOMBINEPRECONCAT);
+
+			idx = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_UPPERARMR));
+			RwMatrix* upperArmR = &RpHAnimHierarchyGetMatrixArray(hier)[idx];
+			RwMatrixScale(upperArmR, &scale, rwCOMBINEPRECONCAT);
+		}
 	}
 
 	if (bBodyPartJustCameOff && m_bodyPartBleeding == PED_HEAD) {
@@ -4941,31 +4984,32 @@ CPed::PreRender(void)
 		TransformToNode(bloodPos, m_bodyPartBleeding);
 
 		switch (m_bodyPartBleeding) {
-			case PED_HEAD:
-				bloodDir = 0.1f * GetUp();
-				break;
-			case PED_UPPERARML:
-				bloodDir = 0.04f * GetUp() - 0.04f * GetRight();
-				break;
-			case PED_UPPERARMR:
-				bloodDir = 0.04f * GetUp() - 0.04f * GetRight();
-				break;
-			case PED_UPPERLEGL:
-				bloodDir = 0.04f * GetUp() + 0.05f * GetForward();
-				break;
-			case PED_UPPERLEGR:
-				bloodDir = 0.04f * GetUp() + 0.05f * GetForward();
-				break;
-			default:
-				bloodDir = CVector(0.0f, 0.0f, 0.0f);
-				break;
+		case PED_HEAD:
+			bloodDir = 0.1f * GetUp();
+			break;
+		case PED_UPPERARML:
+			bloodDir = 0.04f * GetUp() - 0.04f * GetRight();
+			break;
+		case PED_UPPERARMR:
+			bloodDir = 0.04f * GetUp() - 0.04f * GetRight();
+			break;
+		case PED_UPPERLEGL:
+			bloodDir = 0.04f * GetUp() + 0.05f * GetForward();
+			break;
+		case PED_UPPERLEGR:
+			bloodDir = 0.04f * GetUp() + 0.05f * GetForward();
+			break;
+		default:
+			bloodDir = CVector(0.0f, 0.0f, 0.0f);
+			break;
 		}
 
-		for(int i = 0; i < 4; i++)
+		for (int i = 0; i < 4; i++)
 			CParticle::AddParticle(PARTICLE_BLOOD_SPURT, bloodPos, bloodDir, nil, 0.0f, 0, 0, 0, 0);
 	}
 	if (CWeather::Rain > 0.3f && TheCamera.SoundDistUp > 15.0f) {
-		if ((TheCamera.GetPosition() - GetPosition()).Magnitude() < 25.0f) {
+		// Ya tenemos la distancia, así que evitamos calcularla de nuevo
+		if (!bIsDistant && (TheCamera.GetPosition() - GetPosition()).Magnitude() < 25.0f) {
 			bool doSplashUp = true;
 			CColModel *ourCol = CModelInfo::GetColModel(GetModelIndex());
 			CVector speed = FindPlayerSpeed();
@@ -4975,27 +5019,29 @@ CPed::PreRender(void)
 					if (!IsPedHeadAbovePos(0.3f) || RpAnimBlendClumpGetAssociation(GetClump(), ANIM_STD_IDLE_TIRED)) {
 						doSplashUp = false;
 					}
-				} else
+				}
+				else
 					doSplashUp = false;
-			} else
+			}
+			else
 				doSplashUp = false;
 
 			if (doSplashUp && ourCol->numSpheres > 0) {
-				for(int i = 0; i < ourCol->numSpheres; i++) {
+				for (int i = 0; i < ourCol->numSpheres; i++) {
 					CColSphere *sphere = &ourCol->spheres[i];
 					CVector splashPos;
 					switch (sphere->piece) {
-						case PEDPIECE_LEFTARM:
-						case PEDPIECE_RIGHTARM:
-						case PEDPIECE_HEAD:
-							splashPos = GetMatrix() * ourCol->spheres[i].center;
-							splashPos.z += 0.7f * sphere->radius;
-							splashPos.x += CGeneral::GetRandomNumberInRange(-0.15f, 0.15f);
-							splashPos.y += CGeneral::GetRandomNumberInRange(-0.15f, 0.15f);
-							CParticle::AddParticle(PARTICLE_RAIN_SPLASHUP, splashPos, CVector(0.0f, 0.0f, 0.0f), nil, 0.0f, 0, 0, CGeneral::GetRandomNumber() & 1, 0);
-							break;
-						default:
-							break;
+					case PEDPIECE_LEFTARM:
+					case PEDPIECE_RIGHTARM:
+					case PEDPIECE_HEAD:
+						splashPos = GetMatrix() * ourCol->spheres[i].center;
+						splashPos.z += 0.7f * sphere->radius;
+						splashPos.x += CGeneral::GetRandomNumberInRange(-0.15f, 0.15f);
+						splashPos.y += CGeneral::GetRandomNumberInRange(-0.15f, 0.15f);
+						CParticle::AddParticle(PARTICLE_RAIN_SPLASHUP, splashPos, CVector(0.0f, 0.0f, 0.0f), nil, 0.0f, 0, 0, CGeneral::GetRandomNumber() & 1, 0);
+						break;
+					default:
+						break;
 					}
 				}
 			}
@@ -5514,7 +5560,15 @@ CPed::ClearLook(void)
 void
 CPed::Look(void)
 {
-	TurnBody();
+	// --- OPTIMIZACIÓN EXTREMA: Apagar trigonometría de cuello a lo lejos ---
+	if (!IsPlayer() && bIsLooking) {
+		float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) {
+			// Le ordenamos que mire al frente y abortamos la matemática pesada
+			ClearLookFlag();
+			return;
+		}
+	}
 }
 
 bool

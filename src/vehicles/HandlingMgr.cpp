@@ -153,16 +153,16 @@ cHandlingDataMgr::LoadHandlingData(void)
 	CFileMgr::SetDir("");
 
 	start = (char*)work_buff;
-	end = start+1;
+	end = start + 1;
 	handling = nil;
 	flyingHandling = nil;
 	boatHandling = nil;
 	bikeHandling = nil;
 	keepGoing = 1;
 
-	while(keepGoing){
+	while (keepGoing) {
 		// find end of line
-		while(*end != '\n') end++;
+		while (*end != '\n') end++;
 
 		// get line
 		int32 lineLength = end - start;
@@ -172,20 +172,20 @@ cHandlingDataMgr::LoadHandlingData(void)
 #endif
 		strncpy(line, start, lineLength);
 		line[lineLength] = '\0';
-		start = end+1;
-		end = start+1;
+		start = end + 1;
+		end = start + 1;
 
 		// yeah, this is kinda crappy
-		if(strcmp(line, ";the end") == 0)
+		if (strcmp(line, ";the end") == 0)
 			keepGoing = 0;
-		else if(line[0] != ';'){
-			if(line[0] == '!'){
+		else if (line[0] != ';') {
+			if (line[0] == '!') {
 				// Bike data
 				field = 0;
 				strcpy(delim, " \t");
 				// FIX: game seems to use a do-while loop here
-				for(word = strtok(line, delim); word; word = strtok(nil, delim)){
-					switch(field){
+				for (word = strtok(line, delim); word; word = strtok(nil, delim)) {
+					switch (field) {
 					case  0: break;
 					case  1:
 						handlingId = FindExactWord(word, (const char*)VehicleNames, 14, NUMHANDLINGS);
@@ -212,13 +212,14 @@ cHandlingDataMgr::LoadHandlingData(void)
 					field++;
 				}
 				ConvertBikeDataToGameUnits(bikeHandling);
-			}else if(line[0] == '$'){
+			}
+			else if (line[0] == '$') {
 				// Flying data
 				field = 0;
 				strcpy(delim, " \t");
 				// FIX: game seems to use a do-while loop here
-				for(word = strtok(line, delim); word; word = strtok(nil, delim)){
-					switch(field){
+				for (word = strtok(line, delim); word; word = strtok(nil, delim)) {
+					switch (field) {
 					case  0: break;
 					case  1:
 						handlingId = FindExactWord(word, (const char*)VehicleNames, 14, NUMHANDLINGS);
@@ -247,13 +248,14 @@ cHandlingDataMgr::LoadHandlingData(void)
 					}
 					field++;
 				}
-			}else if(line[0] == '%'){
+			}
+			else if (line[0] == '%') {
 				// Boat data
 				field = 0;
 				strcpy(delim, " \t");
 				// FIX: game seems to use a do-while loop here
-				for(word = strtok(line, delim); word; word = strtok(nil, delim)){
-					switch(field){
+				for (word = strtok(line, delim); word; word = strtok(nil, delim)) {
+					switch (field) {
 					case  0: break;
 					case  1:
 						handlingId = FindExactWord(word, (const char*)VehicleNames, 14, NUMHANDLINGS);
@@ -278,12 +280,13 @@ cHandlingDataMgr::LoadHandlingData(void)
 					}
 					field++;
 				}
-			}else{
+			}
+			else {
 				field = 0;
 				strcpy(delim, " \t");
 				// FIX: game seems to use a do-while loop here
-				for(word = strtok(line, delim); word; word = strtok(nil, delim)){
-					switch(field){
+				for (word = strtok(line, delim); word; word = strtok(nil, delim)) {
+					switch (field) {
 					case  0:
 						handlingId = FindExactWord(word, (const char*)VehicleNames, 14, NUMHANDLINGS);
 						assert(handlingId >= 0 && handlingId < NUMHANDLINGS);
@@ -339,9 +342,9 @@ cHandlingDataMgr::FindExactWord(const char *word, const char *words, int wordLen
 {
 	int i;
 
-	for(i = 0; i < numWords; i++){
+	for (i = 0; i < numWords; i++) {
 		// BUG: the game does something really stupid here, it's fixed here
-		if(strncmp(word, words, wordLen) == 0)
+		if (strncmp(word, words, wordLen) == 0)
 			return i;
 		words += wordLen;
 	}
@@ -355,15 +358,15 @@ cHandlingDataMgr::ConvertDataToGameUnits(tHandlingData *handling)
 	// convert distance to m, time to 1/50s
 	float velocity, a, b;
 
-	handling->Transmission.fEngineAcceleration *= 1.0f/(50.0f*50.0f);
-	handling->Transmission.fMaxVelocity *= 1000.0f/(60.0f*60.0f * 50.0f);
-	handling->fBrakeDeceleration *= 1.0f/(50.0f*50.0f);
+	handling->Transmission.fEngineAcceleration *= 1.0f / (50.0f*50.0f);
+	handling->Transmission.fMaxVelocity *= 1000.0f / (60.0f*60.0f * 50.0f);
+	handling->fBrakeDeceleration *= 1.0f / (50.0f*50.0f);
 	handling->fTurnMass = (sq(handling->Dimension.x) + sq(handling->Dimension.y)) * handling->fMass / 12.0f;
-	if(handling->fTurnMass < 10.0f)
+	if (handling->fTurnMass < 10.0f)
 		handling->fTurnMass *= 5.0f;
-	handling->fInvMass = 1.0f/handling->fMass;
-	handling->fCollisionDamageMultiplier *= 2000.0f/handling->fMass;
-	handling->fBuoyancy = 100.0f/handling->nPercentSubmerged * GRAVITY*handling->fMass;
+	handling->fInvMass = 1.0f / handling->fMass;
+	handling->fCollisionDamageMultiplier *= 2000.0f / handling->fMass;
+	handling->fBuoyancy = 100.0f / handling->nPercentSubmerged * GRAVITY*handling->fMass;
 
 	// Don't quite understand this. What seems to be going on is that
 	// we calculate a drag (air resistance) deceleration for a given velocity and
@@ -372,30 +375,32 @@ cHandlingDataMgr::ConvertDataToGameUnits(tHandlingData *handling)
 	a = 0.0f;
 	b = 100.0f;
 	velocity = handling->Transmission.fMaxVelocity;
-	while(a < b && velocity > 0.0f){
+	while (a < b && velocity > 0.0f) {
 		velocity -= 0.01f;
 		// what's the 1/6?
-		a = handling->Transmission.fEngineAcceleration/6.0f;
+		a = handling->Transmission.fEngineAcceleration / 6.0f;
 		// no density or drag coefficient here...
 		float a_drag = 0.5f*SQR(velocity) * handling->Dimension.x*handling->Dimension.z / handling->fMass;
 		// can't make sense of this... maybe  v - v/(drag + 1)  ? but that doesn't make so much sense either
-		b = -velocity * (1.0f/(a_drag + 1.0f) - 1.0f);
+		b = -velocity * (1.0f / (a_drag + 1.0f) - 1.0f);
 	}
 
-	if(handling->nIdentifier == HANDLING_RCBANDIT){
+	if (handling->nIdentifier == HANDLING_RCBANDIT) {
 		handling->Transmission.fMaxCruiseVelocity = handling->Transmission.fMaxVelocity;
 		handling->Transmission.fMaxReverseVelocity = -handling->Transmission.fMaxVelocity;
-	}else if(handling->nIdentifier >= HANDLING_BIKE && handling->nIdentifier <= HANDLING_FREEWAY){
+	}
+	else if (handling->nIdentifier >= HANDLING_BIKE && handling->nIdentifier <= HANDLING_FREEWAY) {
 		handling->Transmission.fMaxCruiseVelocity = velocity;
 		handling->Transmission.fMaxVelocity = velocity * 1.2f;
 		handling->Transmission.fMaxReverseVelocity = -0.05f;
-	}else{
+	}
+	else {
 		handling->Transmission.fMaxCruiseVelocity = velocity;
 		handling->Transmission.fMaxVelocity = velocity * 1.2f;
 		handling->Transmission.fMaxReverseVelocity = -0.2f;
 	}
 
-	if(handling->Transmission.nDriveType == '4')
+	if (handling->Transmission.nDriveType == '4')
 		handling->Transmission.fEngineAcceleration /= 4.0f;
 	else
 		handling->Transmission.fEngineAcceleration /= 2.0f;
@@ -416,8 +421,8 @@ int32
 cHandlingDataMgr::GetHandlingId(const char *name)
 {
 	int i;
-	for(i = 0; i < NUMHANDLINGS; i++)
-		if(strncmp(VehicleNames[i], name, 14) == 0)
+	for (i = 0; i < NUMHANDLINGS; i++)
+		if (strncmp(VehicleNames[i], name, 14) == 0)
 			break;
 	return i;
 }
@@ -425,15 +430,15 @@ cHandlingDataMgr::GetHandlingId(const char *name)
 tFlyingHandlingData*
 cHandlingDataMgr::GetFlyingPointer(uint8 id)
 {
-	if(id >= HANDLING_SEAPLANE && id <= HANDLING_RCCOPTER)
-		return &FlyingHandlingData[id-HANDLING_SEAPLANE];
+	if (id >= HANDLING_SEAPLANE && id <= HANDLING_RCCOPTER)
+		return &FlyingHandlingData[id - HANDLING_SEAPLANE];
 	return &FlyingHandlingData[0];
 }
 
 tBoatHandlingData*
 cHandlingDataMgr::GetBoatPointer(uint8 id)
 {
-	if(id >= HANDLING_PREDATOR && id <= HANDLING_SEAPLANE)
-		return &BoatHandlingData[id-HANDLING_PREDATOR];
+	if (id >= HANDLING_PREDATOR && id <= HANDLING_SEAPLANE)
+		return &BoatHandlingData[id - HANDLING_PREDATOR];
 	return &BoatHandlingData[0];
 }

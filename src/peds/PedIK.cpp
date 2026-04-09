@@ -13,9 +13,9 @@ LimbMovementInfo CPedIK::ms_headRestoreInfo = { DEGTORAD(90.0f), DEGTORAD(-90.0f
 LimbMovementInfo CPedIK::ms_upperArmInfo = { DEGTORAD(5.0f), DEGTORAD(-120.0f), DEGTORAD(20.0f), DEGTORAD(70.0f), DEGTORAD(-70.0f), DEGTORAD(20.0f) };
 LimbMovementInfo CPedIK::ms_lowerArmInfo = { DEGTORAD(60.0f), DEGTORAD(0.0f), DEGTORAD(15.0f), DEGTORAD(90.0f), DEGTORAD(-90.0f), DEGTORAD(10.0f) };
 
-const RwV3d XaxisIK = { 1.0f, 0.0f, 0.0f};
-const RwV3d YaxisIK = { 0.0f, 1.0f, 0.0f};
-const RwV3d ZaxisIK = { 0.0f, 0.0f, 1.0f};
+const RwV3d XaxisIK = { 1.0f, 0.0f, 0.0f };
+const RwV3d YaxisIK = { 0.0f, 1.0f, 0.0f };
+const RwV3d ZaxisIK = { 0.0f, 0.0f, 1.0f };
 
 CPedIK::CPedIK(CPed *ped) : m_ped(ped)
 {
@@ -67,13 +67,15 @@ CPedIK::MoveLimb(LimbOrientation &limb, float targetYaw, float targetPitch, Limb
 
 	// yaw
 
-	if(Abs(limb.yaw-targetYaw) < moveInfo.yawD){
+	if (Abs(limb.yaw - targetYaw) < moveInfo.yawD) {
 		limb.yaw = targetYaw;
 		result = ANGLES_SET_EXACTLY;
-	}else{
+	}
+	else {
 		if (limb.yaw > targetYaw) {
 			limb.yaw -= moveInfo.yawD;
-		} else if (limb.yaw < targetYaw) {
+		}
+		else if (limb.yaw < targetYaw) {
 			limb.yaw += moveInfo.yawD;
 		}
 	}
@@ -85,12 +87,14 @@ CPedIK::MoveLimb(LimbOrientation &limb, float targetYaw, float targetPitch, Limb
 
 	// pitch
 
-	if (Abs(limb.pitch - targetPitch) < moveInfo.pitchD){
+	if (Abs(limb.pitch - targetPitch) < moveInfo.pitchD) {
 		limb.pitch = targetPitch;
-	}else{
+	}
+	else {
 		if (limb.pitch > targetPitch) {
 			limb.pitch -= moveInfo.pitchD;
-		} else if (limb.pitch < targetPitch) {
+		}
+		else if (limb.pitch < targetPitch) {
 			limb.pitch += moveInfo.pitchD;
 		}
 		result = ONE_ANGLE_COULDNT_BE_SET_EXACTLY;
@@ -106,6 +110,15 @@ CPedIK::MoveLimb(LimbOrientation &limb, float targetYaw, float targetPitch, Limb
 bool
 CPedIK::RestoreGunPosn(void)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Snap instantáneo de armas a lo lejos ---
+	if (!m_ped->IsPlayer()) {
+		float distSqr = (TheCamera.GetPosition() - m_ped->GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) {
+			m_torsoOrient.yaw = 0.0f;
+			m_torsoOrient.pitch = 0.0f;
+			return true; // Le decimos al motor que ya terminó de bajar el arma de golpe
+		}
+	}
 	LimbMoveStatus limbStatus = MoveLimb(m_torsoOrient, 0.0f, 0.0f, ms_torsoInfo);
 	RotateTorso(m_ped->m_pFrames[PED_MID], &m_torsoOrient, false);
 	return limbStatus == ANGLES_SET_EXACTLY;
@@ -114,6 +127,15 @@ CPedIK::RestoreGunPosn(void)
 bool
 CPedIK::LookInDirection(float targetYaw, float targetPitch)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Apagar rotación de cuello IK ---
+	if (!m_ped->IsPlayer()) {
+		float distSqr = (TheCamera.GetPosition() - m_ped->GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) {
+			return true;
+		}
+	}
+	// --- FIN OPTIMIZACIÓN ---
+
 	bool success = true;
 	float yaw, pitch;
 	if (!(m_ped->m_pFrames[PED_HEAD]->flag & AnimBlendFrameData::IGNORE_ROTATION)) {
@@ -139,7 +161,7 @@ CPedIK::LookInDirection(float targetYaw, float targetPitch)
 		success = false;
 
 	if (headStatus != ANGLES_SET_EXACTLY && !(m_flags & LOOKAROUND_HEAD_ONLY))
-		if (MoveLimb(m_torsoOrient, CGeneral::LimitRadianAngle(targetYaw-m_ped->m_fRotationCur), targetPitch, ms_torsoInfo))
+		if (MoveLimb(m_torsoOrient, CGeneral::LimitRadianAngle(targetYaw - m_ped->m_fRotationCur), targetPitch, ms_torsoInfo))
 			success = true;
 
 	// This was RotateHead
@@ -156,6 +178,15 @@ CPedIK::LookInDirection(float targetYaw, float targetPitch)
 bool
 CPedIK::LookAtPosition(CVector const &pos)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Evitar cálculos de mirada a lo lejos ---
+	if (!m_ped->IsPlayer()) {
+		float distSqr = (TheCamera.GetPosition() - m_ped->GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) { // Si está a más de 20 metros...
+			return true;    // Fingimos que ya lo miró y abortamos la trigonometría.
+		}
+	}
+	// --- FIN OPTIMIZACIÓN ---
+
 	RwV3d *pedpos = &GetComponentMatrix(m_ped, PED_MID)->pos;
 	float yawToFace = CGeneral::GetRadianAngleBetweenPoints(
 		pos.x, pos.y,
@@ -172,6 +203,16 @@ CPedIK::LookAtPosition(CVector const &pos)
 bool
 CPedIK::PointGunInDirection(float targetYaw, float targetPitch)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Apagar rotación IK de brazos y columna ---
+	if (!m_ped->IsPlayer()) {
+		float distSqr = (TheCamera.GetPosition() - m_ped->GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) {
+			m_flags |= GUN_POINTED_SUCCESSFULLY; // Le decimos a la IA que ya apuntó bien
+			return true;
+		}
+	}
+	// --- FIN OPTIMIZACIÓN ---
+
 	bool result = true;
 	bool armPointedToGun = false;
 	targetYaw = CGeneral::LimitRadianAngle(targetYaw - m_ped->GetForward().Heading());
@@ -184,7 +225,8 @@ CPedIK::PointGunInDirection(float targetYaw, float targetPitch)
 	if (armPointedToGun) {
 		if (m_flags & AIMS_WITH_ARM && m_torsoOrient.yaw * m_upperArmOrient.yaw < 0.0f)
 			MoveLimb(m_torsoOrient, 0.0f, m_torsoOrient.pitch, ms_torsoInfo);
-	} else {
+	}
+	else {
 		// Unused code
 		RwMatrix *matrix;
 		float yaw, pitch;
@@ -193,8 +235,8 @@ CPedIK::PointGunInDirection(float targetYaw, float targetPitch)
 		ExtractYawAndPitchWorld(matrix, &yaw, &pitch);
 		RwMatrixDestroy(matrix);
 
-		if(m_flags & AIMS_WITH_ARM){
-			if(targetPitch > 0.0f)
+		if (m_flags & AIMS_WITH_ARM) {
+			if (targetPitch > 0.0f)
 				targetPitch = Max(targetPitch - Abs(targetYaw), 0.0f);
 			else
 				targetPitch = Min(targetPitch + Abs(targetYaw), 0.0f);
@@ -255,8 +297,8 @@ CPedIK::PointGunInDirectionUsingArm(float targetYaw, float targetPitch)
 		float laYaw = uaYaw - m_upperArmOrient.yaw;
 
 		LimbMoveStatus laStatus;
-		if (laYaw > 0.0f){
-			float rollReduce = laYaw/DEGTORAD(30.0f);
+		if (laYaw > 0.0f) {
+			float rollReduce = laYaw / DEGTORAD(30.0f);
 			uaRoll *= 1.0f - Min(rollReduce, 1.0f);
 			handRoll *= 1.0f - Min(rollReduce, 1.0f);
 
@@ -268,7 +310,8 @@ CPedIK::PointGunInDirectionUsingArm(float targetYaw, float targetPitch)
 			float f1 = ms_upperArmInfo.maxPitch * Max(uaPitchAmount, 0.0f);
 			float f2 = 0.2f*m_lowerArmOrient.yaw + m_upperArmOrient.pitch;
 			m_upperArmOrient.pitch = Min(f1, f2);
-		}else
+		}
+		else
 			laStatus = MoveLimb(m_lowerArmOrient, laYaw, 0.0f, ms_lowerArmInfo);
 
 		if (laStatus == ANGLES_SET_EXACTLY) {
@@ -286,7 +329,7 @@ CPedIK::PointGunInDirectionUsingArm(float targetYaw, float targetPitch)
 	RtQuat *q = &m_ped->m_pFrames[PED_UPPERARMR]->hanimFrame->q;
 	RtQuatRotate(q, &XaxisIK, uaRoll, rwCOMBINEREPLACE);
 	RtQuatRotate(q, &YaxisIK, -RADTODEG(m_upperArmOrient.pitch), rwCOMBINEPOSTCONCAT);
-	RtQuatRotate(q, &ZaxisIK, -RADTODEG(m_upperArmOrient.yaw+HALFPI), rwCOMBINEPOSTCONCAT);
+	RtQuatRotate(q, &ZaxisIK, -RADTODEG(m_upperArmOrient.yaw + HALFPI), rwCOMBINEPOSTCONCAT);
 	m_ped->bDontAcceptIKLookAts = true;
 
 	q = &m_ped->m_pFrames[PED_HANDR]->hanimFrame->q;
@@ -298,6 +341,15 @@ CPedIK::PointGunInDirectionUsingArm(float targetYaw, float targetPitch)
 bool
 CPedIK::PointGunAtPosition(CVector const& position)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Evitar cálculos de apunte a lo lejos ---
+	if (!m_ped->IsPlayer()) {
+		float distSqr = (TheCamera.GetPosition() - m_ped->GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) {
+			return true;
+		}
+	}
+	// --- FIN OPTIMIZACIÓN ---
+
 	CVector startPoint;
 	if (m_ped->GetWeapon()->m_eWeaponType == WEAPONTYPE_SPAS12_SHOTGUN || m_ped->GetWeapon()->m_eWeaponType == WEAPONTYPE_STUBBY_SHOTGUN)
 		startPoint = m_ped->GetPosition();
@@ -317,12 +369,27 @@ CPedIK::PointGunAtPosition(CVector const& position)
 bool
 CPedIK::RestoreLookAt(void)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Snap instantáneo de cuello a lo lejos ---
+	if (!m_ped->IsPlayer()) {
+		float distSqr = (TheCamera.GetPosition() - m_ped->GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) {
+			// Le devolvemos el control de la cabeza a la animación base inmediatamente
+			m_ped->m_pFrames[PED_HEAD]->flag &= (~AnimBlendFrameData::IGNORE_ROTATION);
+			m_headOrient.yaw = 0.0f;
+			m_headOrient.pitch = 0.0f;
+			m_torsoOrient.yaw = 0.0f;
+			m_torsoOrient.pitch = 0.0f;
+			return true; // Fingimos que ya miró al frente suavemente
+		}
+	}
+	// --- FIN OPTIMIZACIÓN ---
 	bool result = false;
 	float yaw, pitch;
 
 	if (m_ped->m_pFrames[PED_HEAD]->flag & AnimBlendFrameData::IGNORE_ROTATION) {
 		m_ped->m_pFrames[PED_HEAD]->flag &= (~AnimBlendFrameData::IGNORE_ROTATION);
-	} else {
+	}
+	else {
 		ExtractYawAndPitchLocalSkinned(m_ped->m_pFrames[PED_HEAD], &yaw, &pitch);
 		if (MoveLimb(m_headOrient, yaw, pitch, ms_headRestoreInfo) == ANGLES_SET_EXACTLY)
 			result = true;

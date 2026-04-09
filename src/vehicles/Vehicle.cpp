@@ -226,6 +226,15 @@ CVehicle::SetModelIndex(uint32 id)
 bool
 CVehicle::SetupLighting(void)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Apagar luces dinámicas en vehículos lejanos ---
+	// EXCEPCIÓN: Si el coche está destruido (STATUS_WRECKED), dejamos que calcule la luz
+	// para que su textura quemada y el fuego se vean correctamente.
+	if (this != FindPlayerVehicle() && GetStatus() != STATUS_WRECKED) {
+		float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+		if (distSqr > 0.0f) { // 2500 = 50 metros al cuadrado
+			return false; // El motor gráfico saltará el cálculo de reflejos y luces para este coche
+		}
+	}
 	ActivateDirectional();
 	SetAmbientColoursForPedsCarsAndObjects();
 
@@ -2221,99 +2230,7 @@ CVehicle::HeliDustGenerate(CEntity *heli, float radius, float ground, int rnd)
 void
 CVehicle::DoSunGlare(void)
 {
-	if(bRenderScorched || GetPosition().z < 0.0f ||
-	   GetVehicleAppearance() != VEHICLE_APPEARANCE_CAR || CWeather::SunGlare <= 0.0f)
 		return;
-
-	CVector camDir = TheCamera.GetPosition() - GetPosition();
-	float dist = camDir.Magnitude();
-	camDir *= 2.0f/dist;
-	CVector glareVec = camDir + CTimeCycle::GetSunDirection();
-	CVector localGlareVec;
-	localGlareVec.x = DotProduct(glareVec, GetRight());
-	localGlareVec.y = DotProduct(glareVec, GetForward());
-	localGlareVec.z = 0.0;
-	localGlareVec.Normalise();
-
-	CVector2D fwd2D = GetForward();
-	fwd2D.Normalise();
-	CVector2D camDir2D = camDir;
-	camDir2D.Normalise();
-	float fwdness = Abs(DotProduct2D(fwd2D, camDir2D));
-
-	// check angle
-	float strength;
-	if(fwdness > GLARE_FULL_ANGLE)
-		strength = 1.0f;
-	else if(fwdness > GLARE_MIN_ANGLE)
-		strength = (fwdness - GLARE_MIN_ANGLE)/(GLARE_FULL_ANGLE-GLARE_MIN_ANGLE);
-	else
-		return;
-	// check distance
-	if(dist > GLARE_FULL_DIST){
-		// no max distance
-	}else if(dist > GLARE_MIN_DIST)
-		strength *= (dist - GLARE_MIN_DIST)/(GLARE_FULL_DIST - GLARE_MIN_DIST);
-	else
-		return;
-
-	float intens = 0.8f * strength * CWeather::SunGlare;
-	int r = intens * (CTimeCycle::GetSunCoreRed() + 2*255)/3.0f;
-	int g = intens * (CTimeCycle::GetSunCoreGreen() + 2*255)/3.0f;
-	int b = intens * (CTimeCycle::GetSunCoreBlue() + 2*255)/3.0f;
-
-	CColModel *colmodel = GetColModel();
-	CCollision::CalculateTrianglePlanes(colmodel);
-
-	int i;
-	for(i = 0; i < colmodel->numTriangles-2; i += 2){
-		int a1 = colmodel->triangles[i].a;
-		int b1 = colmodel->triangles[i].b;
-		int c1 = colmodel->triangles[i].c;
-		int a2 = colmodel->triangles[i+1].a;
-		int b2 = colmodel->triangles[i+1].b;
-		int c2 = colmodel->triangles[i+1].c;
-		CVector vert1 = colmodel->vertices[a1].Get();
-		CVector vert4;
-		// Need an upward surface
-		if(vert1.z <= 0.0f)
-			continue;
-
-		// trying to find a quad here
-		int numTri2Verts = 0;
-		if(a2 != a1 && a2 != b1 && a2 != c1){
-			// a2 is not in tri1
-			numTri2Verts++;
-			vert4 = colmodel->vertices[a2].Get();
-		}
-		if(b2 != a1 && b2 != b1 && b2 != c1){
-			// b2 is not in tri1
-			numTri2Verts++;
-			vert4 = colmodel->vertices[b2].Get();
-		}
-		if(c2 != a1 && c2 != b1 && c2 != c1){
-			// c2 is not in tri1
-			numTri2Verts++;
-			vert4 = colmodel->vertices[c2].Get();
-		}
-		// Need exactly one vertex from tri2 for a quad with tri1
-		if(numTri2Verts != 1)
-			continue;
-
-		CVector mid = (vert1 + colmodel->vertices[b1].Get() + colmodel->vertices[c1].Get() + vert4)/4.0f;
-		float dy = mid.y - vert1.y;
-		float dx = mid.x - vert1.x;
-		float dist = 1.4f * Min(Abs(dx), Abs(dy));
-		if(dist > 0.6f){
-			CVector pos = GetMatrix() * (dist * localGlareVec + mid) + camDir;
-			CCoronas::RegisterCorona((uintptr)this + 27 + i,
-				r, g, b, 255,
-				pos, 0.9f*CWeather::SunGlare, 90.0f,
-				CCoronas::TYPE_STAR, CCoronas::FLARE_NONE,
-				CCoronas::REFLECTION_OFF, CCoronas::LOSCHECK_OFF,
-				CCoronas::STREAK_OFF, 0.0f);
-		}
-	}
 }
 
 void

@@ -776,6 +776,18 @@ CPed::RestorePreviousObjective(void)
 void
 CPed::ProcessObjective(void)
 {
+	// --- OPTIMIZACIÓN EXTREMA: Time-Slicing de Inteligencia Artificial ---
+	// Los peatones genéricos a más de 20 metros solo "piensan" 1 de cada 4 fotogramas.
+	// Usamos su semilla aleatoria (m_randomSeed) para balancear la carga de la CPU.
+	if (!IsPlayer() && CharCreatedBy == RANDOM_CHAR) {
+		float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+		if (distSqr > 400.0f) { // 400 = 20 metros al cuadrado
+			if ((CTimer::GetFrameCounter() + m_randomSeed) % 4 != 0) {
+				return; // La CPU salta toda la lógica de IA y el peatón simplemente sigue haciendo su animación actual
+			}
+		}
+	}
+	// --- FIN OPTIMIZACIÓN ---
 	if (bClearObjective && (IsPedInControl() || m_nPedState == PED_DRIVING)) {
 		ClearObjective();
 		bClearObjective = false;

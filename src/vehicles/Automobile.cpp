@@ -1746,6 +1746,20 @@ CAutomobile::PreRender(void)
 	int i, j, n;
 	CVehicleModelInfo *mi = (CVehicleModelInfo*)CModelInfo::GetModelInfo(GetModelIndex());
 
+	// --- OPTIMIZACIÓN EXTREMA: Escudo de Renderizado Lejano ---
+	// Si no es el jugador, ni un helicóptero (para evitar que las aspas se congelen)
+	if (GetStatus() != STATUS_PLAYER && !IsRealHeli()) {
+		// Usamos 2500.0f que son 50 metros al cuadrado
+		float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+		if (distSqr > 2500.0f) {
+			// A esta distancia dibujamos una sombra estática ultra barata y ABORTAMOS.
+			// Nos ahorramos cientos de multiplicaciones de matrices para girar las 4 llantas, 
+			// calcular reflejos de luces y partículas del tubo de escape.
+			CShadows::StoreShadowForVehicle(this, VEH_SHD_TYPE_CAR);
+			return;
+		}
+	}
+
 	if(GetModelIndex() == MI_RHINO && m_aCarNodes[CAR_WINDSCREEN]){
 		// Rotate Rhino turret
 		CMatrix m;
@@ -1962,12 +1976,14 @@ CAutomobile::PreRender(void)
 	}
 
 
-	// Rain on roof
-	if(!CCullZones::CamNoRain() && !CCullZones::PlayerNoRain() &&
-	   Abs(fwdSpeed) < 20.0f && CWeather::Rain > 0.02f){
+	// --- OPTIMIZACIÓN EXTREMA: Lluvia en el techo ---
+	// Evitamos multiplicar matrices por cada triángulo de colisión en todos los coches del tráfico.
+	if (!CCullZones::CamNoRain() && !CCullZones::PlayerNoRain() &&
+		Abs(fwdSpeed) < 20.0f && CWeather::Rain > 0.02f &&
+		(this == FindPlayerVehicle() || (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr() < 100.0f)) {
 		CColModel *colModel = GetColModel();
 
-		for(i = 0; i < colModel->numTriangles; i++){
+		for (i = 0; i < colModel->numTriangles; i++) {
 			CVector p1, p2, p3, c;
 
 			colModel->GetTrianglePoint(p1, colModel->triangles[i].a);
@@ -1976,16 +1992,17 @@ CAutomobile::PreRender(void)
 			p2 = GetMatrix() * p2;
 			colModel->GetTrianglePoint(p3, colModel->triangles[i].c);
 			p3 = GetMatrix() * p3;
-			c = (p1 + p2 + p3)/3.0f;
+			c = (p1 + p2 + p3) / 3.0f;
 
 			n = 6.0f*CWeather::Rain;
-			for(j = 0; j <= n; j++)
+			for (j = 0; j <= n; j++)
 				CParticle::AddParticle(PARTICLE_RAIN_SPLASHUP,
 					c + CVector(CGeneral::GetRandomNumberInRange(-0.4f, 0.4f), CGeneral::GetRandomNumberInRange(-0.4f, 0.4f), 0.0f),
 					CVector(0.0f, 0.0f, 0.0f),
 					nil, 0.0f, 0, 0, CGeneral::GetRandomNumber() & 1);
 		}
 	}
+	// --- FIN OPTIMIZACIÓN ---
 
 	AddDamagedVehicleParticles();
 
@@ -2434,25 +2451,29 @@ CAutomobile::PreRender(void)
 			CBrightLights::RegisterOne(lightR, GetUp(), GetRight(), GetForward(), pHandling->RearLights + BRIGHTLIGHT_REAR);
 
 		// Light shadows
-		if(!alarmOff){
+		// --- OPTIMIZACIÓN EXTREMA: Sombras de faros dinámicos ---
+		// Proyectar la textura de los faros en el suelo consume mucho Fill-Rate de la GPU.
+		// Lo limitamos solo al coche del jugador. 
+		if (!alarmOff && this == FindPlayerVehicle()) {
 			CVector pos = GetPosition();
 			CVector2D fwd(GetForward());
 			fwd.Normalise();
 			float f = headLightPos.y + 6.0f;
 			pos += CVector(f*fwd.x, f*fwd.y, 2.0f);
 
-			if(Damage.GetLightStatus(VEHLIGHT_FRONT_LEFT) == LIGHT_STATUS_OK ||
-			   Damage.GetLightStatus(VEHLIGHT_FRONT_RIGHT) == LIGHT_STATUS_OK)
+			if (Damage.GetLightStatus(VEHLIGHT_FRONT_LEFT) == LIGHT_STATUS_OK ||
+				Damage.GetLightStatus(VEHLIGHT_FRONT_RIGHT) == LIGHT_STATUS_OK)
 				CShadows::StoreCarLightShadow(this, (uintptr)this + 22, gpShadowHeadLightsTex, &pos,
 					7.0f*fwd.x, 7.0f*fwd.y, 5.5f*fwd.y, -5.5f*fwd.x, 45, 45, 45, 7.0f);
 
 			f = (tailLightPos.y - 2.5f) - (headLightPos.y + 6.0f);
 			pos += CVector(f*fwd.x, f*fwd.y, 0.0f);
-			if(Damage.GetLightStatus(VEHLIGHT_REAR_LEFT) == LIGHT_STATUS_OK ||
-			   Damage.GetLightStatus(VEHLIGHT_REAR_RIGHT) == LIGHT_STATUS_OK)
+			if (Damage.GetLightStatus(VEHLIGHT_REAR_LEFT) == LIGHT_STATUS_OK ||
+				Damage.GetLightStatus(VEHLIGHT_REAR_RIGHT) == LIGHT_STATUS_OK)
 				CShadows::StoreCarLightShadow(this, (uintptr)this + 25, gpShadowExplosionTex, &pos,
 					3.0f, 0.0f, 0.0f, -3.0f, 35, 0, 0, 4.0f);
 		}
+		// --- FIN OPTIMIZACIÓN ---
 
 		if(this == FindPlayerVehicle() && !alarmOff){
 			if(Damage.GetLightStatus(VEHLIGHT_FRONT_LEFT) == LIGHT_STATUS_OK ||
@@ -4380,6 +4401,17 @@ CAutomobile::AddDamagedVehicleParticles(void)
 
 	if(this == FindPlayerVehicle() && TheCamera.GetLookingForwardFirstPerson())
 		return;
+	// --- OPTIMIZACIÓN EXTREMA: Apagar humo de daño a lo lejos ---
+	if (this != FindPlayerVehicle()) {
+		// 900.0f = 30 metros al cuadrado
+		float distSqr = (TheCamera.GetPosition() - GetPosition()).MagnitudeSqr();
+		if (distSqr > 900.0f) {
+			// Si el coche dañado está lejos, no generamos humo ni fuego.
+			// Esto salva el Fill-Rate de la GPU cuando hay accidentes múltiples en la lejanía.
+			return;
+		}
+	}
+	// --- FIN OPTIMIZACIÓN ---
 	if(this != FindPlayerVehicle() && (CTimer::GetFrameCounter() + m_randomSeed) & 1)
 		return;
 	if(m_fHealth >= 650.0f)

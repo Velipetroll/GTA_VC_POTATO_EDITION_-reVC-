@@ -45,14 +45,14 @@ cBuoyancy::ProcessBuoyancy(CPhysical *phys, float buoyancy, CVector *point, CVec
 {
 	m_numSteps = 2.0f;
 
-	if(!CWaterLevel::GetWaterLevel(phys->GetPosition(), &m_waterlevel, phys->bTouchingWater))
+	if (!CWaterLevel::GetWaterLevel(phys->GetPosition(), &m_waterlevel, phys->bTouchingWater))
 		return false;
 	m_matrix = phys->GetMatrix();
 
 	PreCalcSetup(phys, buoyancy);
 	SimpleCalcBuoyancy();
 	float f = CalcBuoyancyForce(phys, point, impulse);
-	if(m_isBoat)
+	if (m_isBoat)
 		return true;
 	return f != 0.0f;
 }
@@ -62,7 +62,7 @@ cBuoyancy::ProcessBuoyancyBoat(CVehicle *veh, float buoyancy, CVector *point, CV
 {
 	m_numSteps = 2.0f;
 
-	if(!CWaterLevel::GetWaterLevel(veh->GetPosition(), &m_waterlevel, veh->bTouchingWater))
+	if (!CWaterLevel::GetWaterLevel(veh->GetPosition(), &m_waterlevel, veh->bTouchingWater))
 		return false;
 	m_matrix = veh->GetMatrix();
 	PreCalcSetup(veh, buoyancy);
@@ -74,14 +74,14 @@ cBuoyancy::ProcessBuoyancyBoat(CVehicle *veh, float buoyancy, CVector *point, CV
 	CVector waterNormal;
 
 	// Floater is divided into 3x3 parts. Process and sum each of them
-	float volDiv = 1.0f/((m_dimMax.z - m_dimMin.z)*sq(m_numSteps+1.0f));
+	float volDiv = 1.0f / ((m_dimMax.z - m_dimMin.z)*sq(m_numSteps + 1.0f));
 	ix = 0;
-	for(x = m_dimMin.x; x <= m_dimMax.x; x += m_step.x){
+	for (x = m_dimMin.x; x <= m_dimMax.x; x += m_step.x) {
 		i = ix;
-		for(y = m_dimMin.y; y <= m_dimMax.y; y += m_step.y){
+		for (y = m_dimMin.y; y <= m_dimMax.y; y += m_step.y) {
 			CVector waterLevel(x, y, 0.0f);
 			FindWaterLevelNorm(m_positionZ, &waterLevel, &waterPosition, &waterNormal);
-			switch(veh->GetModelIndex()){
+			switch (veh->GetModelIndex()) {
 			case MI_RIO:
 				fVolMultiplier = fBoatVolumeDistributionCat[i];
 				break;
@@ -105,14 +105,14 @@ cBuoyancy::ProcessBuoyancyBoat(CVehicle *veh, float buoyancy, CVector *point, CV
 				fVolMultiplier = fBoatVolumeDistribution[i];
 				break;
 			}
-			if(waterPosition != FLOATER_ABOVE_WATER){
+			if (waterPosition != FLOATER_ABOVE_WATER) {
 				float volume = SimpleSumBuoyancyData(waterLevel, waterPosition);
 				float upImpulse = volume * volDiv * buoyancy * CTimer::GetTimeStep();
 				CVector speed = veh->GetSpeed(Multiply3x3(veh->GetMatrix(), CVector(x, y, 0.0f)));
 				float damp = 1.0f - DotProduct(speed, waterNormal)*veh->pHandling->fSuspensionDampingLevel;
 				float finalImpulse = upImpulse*Max(damp, 0.0f);
 				impulse->z += finalImpulse;
-				if(!bNoTurnForce)
+				if (!bNoTurnForce)
 					veh->ApplyTurnForce(finalImpulse*waterNormal, Multiply3x3(m_matrix, waterLevel));
 			}
 			i += 3;
@@ -137,8 +137,8 @@ cBuoyancy::PreCalcSetup(CPhysical *phys, float buoyancy)
 	m_dimMin = colModel->boundingBox.min;
 	m_dimMax = colModel->boundingBox.max;
 
-	if(m_isBoat){
-		switch(phys->GetModelIndex()){
+	if (m_isBoat) {
+		switch (phys->GetModelIndex()) {
 		case MI_PREDATOR:
 		default:
 			m_dimMax.y *= 1.05f;
@@ -190,20 +190,22 @@ cBuoyancy::PreCalcSetup(CPhysical *phys, float buoyancy)
 		}
 	}
 
-	m_step = (m_dimMax - m_dimMin)/m_numSteps;
+	m_step = (m_dimMax - m_dimMin) / m_numSteps;
 
-	if(m_step.z > m_step.x && m_step.z > m_step.y){
-		m_stepRatio.x = m_step.x/m_step.z;
-		m_stepRatio.y = m_step.y/m_step.z;
+	if (m_step.z > m_step.x && m_step.z > m_step.y) {
+		m_stepRatio.x = m_step.x / m_step.z;
+		m_stepRatio.y = m_step.y / m_step.z;
 		m_stepRatio.z = 1.0f;
-	}else if(m_step.y > m_step.x && m_step.y > m_step.z){
-		m_stepRatio.x = m_step.x/m_step.y;
+	}
+	else if (m_step.y > m_step.x && m_step.y > m_step.z) {
+		m_stepRatio.x = m_step.x / m_step.y;
 		m_stepRatio.y = 1.0f;
-		m_stepRatio.z = m_step.z/m_step.y;
-	}else{
+		m_stepRatio.z = m_step.z / m_step.y;
+	}
+	else {
 		m_stepRatio.x = 1.0f;
-		m_stepRatio.y = m_step.y/m_step.x;
-		m_stepRatio.z = m_step.z/m_step.x;
+		m_stepRatio.y = m_step.y / m_step.x;
+		m_stepRatio.z = m_step.z / m_step.x;
 	}
 
 	m_haveVolume = false;
@@ -223,17 +225,17 @@ cBuoyancy::SimpleCalcBuoyancy(void)
 	tWaterLevel waterPosition;
 
 	// Floater is divided into 3x3 parts. Process and sum each of them
-	for(x = m_dimMin.x; x <= m_dimMax.x; x += m_step.x){
-		for(y = m_dimMin.y; y <= m_dimMax.y; y += m_step.y){
+	for (x = m_dimMin.x; x <= m_dimMax.x; x += m_step.x) {
+		for (y = m_dimMin.y; y <= m_dimMax.y; y += m_step.y) {
 			CVector waterLevel(x, y, 0.0f);
 			FindWaterLevel(m_positionZ, &waterLevel, &waterPosition);
 			fVolMultiplier = 1.0f;
-			if(waterPosition != FLOATER_ABOVE_WATER)
+			if (waterPosition != FLOATER_ABOVE_WATER)
 				SimpleSumBuoyancyData(waterLevel, waterPosition);
 		}
 	}
 
-	m_volumeUnderWater /= (m_dimMax.z - m_dimMin.z)*sq(m_numSteps+1.0f);
+	m_volumeUnderWater /= (m_dimMax.z - m_dimMin.z)*sq(m_numSteps + 1.0f);
 }
 
 float
@@ -247,10 +249,10 @@ cBuoyancy::SimpleSumBuoyancyData(CVector &waterLevel, tWaterLevel waterPosition)
 	float submerged = Abs(waterLevel.z - m_dimMin.z);
 	// subtract empty space from submerged volume
 	fThisVolume = submerged - (1.0f - fVolMultiplier);
-	if(fThisVolume < 0.0f)
+	if (fThisVolume < 0.0f)
 		return 0.0f;
 
-	if(m_isBoat){
+	if (m_isBoat) {
 		fThisVolume *= fVolMultiplier;
 		fThisVolume = sq(fThisVolume);
 	}
@@ -259,12 +261,12 @@ cBuoyancy::SimpleSumBuoyancyData(CVector &waterLevel, tWaterLevel waterPosition)
 
 	AverageOfWaterLevel.x = waterLevel.x * m_stepRatio.x;
 	AverageOfWaterLevel.y = waterLevel.y * m_stepRatio.y;
-	AverageOfWaterLevel.z = (waterLevel.z+m_dimMin.z)/2.0f * m_stepRatio.z;
+	AverageOfWaterLevel.z = (waterLevel.z + m_dimMin.z) / 2.0f * m_stepRatio.z;
 
-	if(m_flipAverage)
+	if (m_flipAverage)
 		AverageOfWaterLevel = -AverageOfWaterLevel;
 
-	fFraction = 1.0f/m_numPartialVolumes;
+	fFraction = 1.0f / m_numPartialVolumes;
 	fRemainingSlice = 1.0f - fFraction;
 	m_impulsePoint = m_impulsePoint*fRemainingSlice + AverageOfWaterLevel*fThisVolume*fFraction;
 	m_numPartialVolumes += 1.0f;
@@ -283,10 +285,11 @@ cBuoyancy::FindWaterLevel(const CVector &zpos, CVector *waterLevel, tWaterLevel 
 	CWaterLevel::GetWaterLevel(xWaterLevel.x + m_position.x, xWaterLevel.y + m_position.y, m_position.z,
 		&waterLevel->z, true);
 	waterLevel->z -= xWaterLevel.z + zpos.z;	// make local
-	if(waterLevel->z > m_dimMax.z){
+	if (waterLevel->z > m_dimMax.z) {
 		waterLevel->z = m_dimMax.z;
 		*waterPosition = FLOATER_UNDER_WATER;
-	}else if(waterLevel->z < m_dimMin.z){
+	}
+	else if (waterLevel->z < m_dimMin.z) {
 		waterLevel->z = m_dimMin.z;
 		*waterPosition = FLOATER_ABOVE_WATER;
 	}
@@ -301,12 +304,13 @@ cBuoyancy::FindWaterLevelNorm(const CVector &zpos, CVector *waterLevel, tWaterLe
 	CWaterLevel::GetWaterLevel(xWaterLevel.x + m_position.x, xWaterLevel.y + m_position.y, m_position.z,
 		&waterLevel->z, true);
 	waterLevel->z -= xWaterLevel.z + zpos.z;	// make local
-	if(waterLevel->z >= m_dimMin.z)
+	if (waterLevel->z >= m_dimMin.z)
 		*normal = CWaterLevel::GetWaterNormal(xWaterLevel.x + m_position.x, xWaterLevel.y + m_position.y);
-	if(waterLevel->z > m_dimMax.z){
+	if (waterLevel->z > m_dimMax.z) {
 		waterLevel->z = m_dimMax.z;
 		*waterPosition = FLOATER_UNDER_WATER;
-	}else if(waterLevel->z < m_dimMin.z){
+	}
+	else if (waterLevel->z < m_dimMin.z) {
 		waterLevel->z = m_dimMin.z;
 		*waterPosition = FLOATER_ABOVE_WATER;
 	}
@@ -315,7 +319,7 @@ cBuoyancy::FindWaterLevelNorm(const CVector &zpos, CVector *waterLevel, tWaterLe
 bool
 cBuoyancy::CalcBuoyancyForce(CPhysical *phys, CVector *point, CVector *impulse)
 {
-	if(!m_haveVolume)
+	if (!m_haveVolume)
 		return false;
 
 	*point = Multiply3x3(m_matrix, m_impulsePoint);
