@@ -53,12 +53,7 @@ CCutsceneObject::SetModelIndex(uint32 id)
 void
 CCutsceneObject::CreateShadow(void)
 {
-	if ( IsPedModel(GetModelIndex()) )
-	{
-		m_pShadow = new CCutsceneShadow();
-		if (!m_pShadow->IsInitialized())
-			m_pShadow->Create(m_rwObject, 6, true, 4, true);
-	}
+	return;
 }
 
 void
@@ -114,37 +109,8 @@ CCutsceneObject::PreRender(void)
 	if ( RwObjectGetType(m_rwObject) == rpCLUMP )
 		UpdateRpHAnim();
 	
-	if(IsPedModel(GetModelIndex()))
-	{
-		if ( m_pShadow == nil )
-		{
-			CShadows::StoreShadowForPedObject(this,
-				CTimeCycle::m_fShadowDisplacementX[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowDisplacementY[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowFrontX[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowFrontY[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowSideX[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowSideY[CTimeCycle::m_CurrentStoredValue]);
-		}
-		else
-		{
-			if ( m_pShadow->IsInitialized() )
-				m_pShadow->UpdateForCutscene();
-			
-			CShadows::StoreShadowForCutscenePedObject(this,
-				CTimeCycle::m_fShadowDisplacementX[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowDisplacementY[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowFrontX[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowFrontY[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowSideX[CTimeCycle::m_CurrentStoredValue],
-				CTimeCycle::m_fShadowSideY[CTimeCycle::m_CurrentStoredValue]);
-		}
-			
-		// For some reason xbox/android limbs are transparent here...
-		RpGeometry *geometry = RpAtomicGetGeometry(GetFirstAtomic(GetClump()));
-		RpGeometrySetFlags(geometry, RpGeometryGetFlags(geometry) | rpGEOMETRYMODULATEMATERIALCOLOR);
-		RpGeometryForAllMaterials(geometry, MaterialSetAlpha, (void*)255);
-	}
+	return;
+	
 }
 
 void
@@ -158,20 +124,6 @@ CCutsceneObject::Render(void)
 bool
 CCutsceneObject::SetupLighting(void)
 {
-	ActivateDirectional();
-	SetAmbientColoursForPedsCarsAndObjects();
-
-	if(bRenderScorched){
-		WorldReplaceNormalLightsWithScorched(Scene.world, 0.1f);
-	}else{
-		CVector coors = GetPosition();
-		float lighting = CPointLights::GenerateLightsAffectingObject(&coors);
-		if(lighting != 1.0f){
-			SetAmbientAndDirectionalColours(lighting);
-			return true;
-		}
-	}
-
 	return false;
 }
 
