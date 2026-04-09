@@ -54,12 +54,12 @@ We cannot build for PS2 or Xbox yet. If you're interested in doing so, get in to
 
 ## Screenshots
 
-![screen_ 1613087332]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_1.png)
-![screen_ 1613086852]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_2.png)
-![screen_ 1613086989]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_3.png)
-![screen_ 1613087193]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_4.png)
-![screen_ 1613087123]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_5.png)
-![screen_ 161301193]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_6.png)
+![screen_ 1613087332](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_1.png)
+![screen_ 1613086852](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_2.png)
+![screen_ 1613086989](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_3.png)
+![screen_ 1613087193](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_4.png)
+![screen_ 1613087123](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_5.png)
+![screen_ 161301193](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_6.png)
 ## Standard reVC Improvements
 
 We have implemented a number of changes and improvements to the original game.
