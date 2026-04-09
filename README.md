@@ -14,7 +14,7 @@ In this repository you'll find a heavily modified and optimized version of the f
 
 This specific fork was born with a clear goal: **to make GTA Vice City run smoothly and stably on extremely low-end hardware, specifically targeting single-core processors like the Intel Atom N450 and integrated graphics like the GMA 3150**. To achieve this, the AI analyzed the RenderWare engine and successfully eliminated massive bottlenecks, disabled unnecessary background mathematical calculations, and introduced aggressive Level of Detail (LOD) mechanics that the original developers left on the table.
 
-It has been tested and works on Windows, Android, Linux, MacOS and FreeBSD, on x86, amd64, arm and arm64.\
+It has been tested and works only on Windows\
 Rendering is handled either by original RenderWare (D3D8)
 or the reimplementation [librw](https://github.com/aap/librw) (D3D9, OpenGL 2.1 or above, OpenGL ES 2.0 or above).\
 Audio is done with MSS (using dlls from original GTA) or OpenAL.
