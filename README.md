@@ -33,7 +33,7 @@ We cannot build for PS2 or Xbox yet. If you're interested in doing so, get in to
 ## 🎮 AI-Coded New Features Added
 
 * **Quick Save System (F6):** A seamless quick-save feature was injected into the main game loop (`Game.cpp`). Pressing F6 intercepts the keyboard input and safely triggers the official save menu (`m_bActivateSaveMenu`), pausing the game and allowing you to save anywhere without corrupting your file.
-* **True First-Person Camera (Vehicles):** Drive from Tommy's perspective! A dynamic first-person view has been fully programmed by AI, adjusting perfectly depending on the vehicle.
+* **True First-Person Camera (Vehicles):** Drive from Tommy's perspective! A first-person view has been fully programmed by AI, adjusting perfectly depending on the vehicle.
 * **Crash-Proof Shielding:** AI patched texture destruction functions (Garbage Collection) to prevent unexpected engine crashes when loading new save files.
 
 ## Installation
