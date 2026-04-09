@@ -1,4 +1,4 @@
-<img src="https://github.com/mrxenginner/reVC/blob/miami/res/images/logo_1024.png?raw=true" alt="reVC logo" width="200">
+<img src="https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/logo/logo_1024.png?raw=true" alt="reVC logo" width="200">
 
 [![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fmrxenginner%2FreVC%2Fbadge%3Fref%3Dmiami&style=flat)](https://actions-badge.atrox.dev/mrxenginner/reVC/goto?ref=miami)
 <a href="https://discord.gg/RFNbjsUMGg"><img src="https://img.shields.io/badge/discord-join-7289DA.svg?logo=discord&longCache=true&style=flat" /></a>
@@ -54,11 +54,12 @@ We cannot build for PS2 or Xbox yet. If you're interested in doing so, get in to
 
 ## Screenshots
 
-![screen_ 1613087332](https://user-images.githubusercontent.com/1521437/107714111-f84f3200-6ccc-11eb-902e-d757481d579a.png)
-![screen_ 1613086852](https://user-images.githubusercontent.com/1521437/107714115-fa18f580-6ccc-11eb-9de5-eb4cd04865d3.png)
-![screen_ 1613086989](https://user-images.githubusercontent.com/1521437/107714103-f38a7e00-6ccc-11eb-88a3-c8c2033c51d6.png)
-![screen_ 1613087193](https://user-images.githubusercontent.com/1521437/107714106-f4bbab00-6ccc-11eb-96a9-13821d9b9684.png)
-
+![screen_ 1613087332]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_1.png)
+![screen_ 1613086852]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_2.png)
+![screen_ 1613086989]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_3.png)
+![screen_ 1613087193]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_4.png)
+![screen_ 1613087123]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_5.png)
+![screen_ 161301193]("https://github.com/Velipetroll/reVC-POTATO_EDITION/blob/miami/images/Image_6.png)
 ## Standard reVC Improvements
 
 We have implemented a number of changes and improvements to the original game.
