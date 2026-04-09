@@ -3,7 +3,7 @@
 [![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fmrxenginner%2FreVC%2Fbadge%3Fref%3Dmiami&style=flat)](https://actions-badge.atrox.dev/mrxenginner/reVC/goto?ref=miami)
 <a href="https://discord.gg/RFNbjsUMGg"><img src="https://img.shields.io/badge/discord-join-7289DA.svg?logo=discord&longCache=true&style=flat" /></a>
 
-# 🤖 GTA Vice City: reVC - 100% AI-Engineered Extreme Potato Edition 🌴
+# 🤖 GTA Vice City: reVC - 100% AI-Engineered Potato Edition 🌴
 
 > ⚠️ **REVOLUTIONARY APPROACH: 100% AI-GENERATED CODE** ⚠️
 > **Every single engine optimization, C++ logic rewrite, and new feature in this fork was exclusively designed, analyzed, and programmed by Artificial Intelligence (Gemini).** The human author acted strictly as a project director, tester, and compiler. This project stands as a proof-of-concept demonstrating how AI can deep-dive into complex, legacy reverse-engineered C++ game engines to surgically extract maximum performance.
