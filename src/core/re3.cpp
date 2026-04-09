@@ -73,11 +73,9 @@ int
 myrand(void)
 {
 #ifdef USE_PS2_RAND
-	// Use our own implementation of rand, stolen from PS2
 	myrand_seed = 0x5851F42D4C957F2D * myrand_seed + 1;
 	return ((myrand_seed >> 32) & 0x7FFFFFFF);
 #else
-	// or original codewarrior rand
 	myrand_seed = myrand_seed * 1103515245 + 12345;
 	return((myrand_seed >> 16) & 0x7FFF);
 #endif
@@ -91,8 +89,6 @@ mysrand(unsigned int seed)
 
 #ifdef CUSTOM_FRONTEND_OPTIONS
 #include "frontendoption.h"
-
-
 
 #ifdef MORE_LANGUAGES
 void LangPolSelect(int8 action)
@@ -129,67 +125,8 @@ void LangJapSelect(int8 action)
 void
 CustomFrontendOptionsPopulate(void)
 {
-	// Most of custom options are done statically in MenuScreensCustom.cpp, we add them here only if they're dependent to extra files
-
-	int fd;
-	// These work only if we have neo folder, so they're dynamically added
-#ifdef EXTENDED_PIPELINES
-	const char *vehPipelineNames[] = { "FED_MFX", "FED_NEO" };
-	const char *off_on[] = { "FEM_OFF", "FEM_ON" };
-#if defined ANDROID
-	CFileMgr::ChangeDir("\\");
-#endif
-	fd = CFileMgr::OpenFile("neo/neo.txd","r");
-	if (fd) {
-#ifdef GRAPHICS_MENU_OPTIONS
-		FrontendOptionSetCursor(MENUPAGE_GRAPHICS_SETTINGS, -3, false);
-		FrontendOptionAddSelect("FED_VPL", 0, 0, MENUALIGN_LEFT, vehPipelineNames, ARRAY_SIZE(vehPipelineNames), (int8*)&CustomPipes::VehiclePipeSwitch, false, nil, "Graphics", "VehiclePipeline");
-		FrontendOptionAddSelect("FED_PRM", 0, 0, MENUALIGN_LEFT, off_on, 2, (int8*)&CustomPipes::RimlightEnable, false, nil, "Graphics", "NeoRimLight");
-		FrontendOptionAddSelect("FED_WLM", 0, 0, MENUALIGN_LEFT, off_on, 2, (int8*)&CustomPipes::LightmapEnable, false, nil, "Graphics", "NeoLightMaps");
-		FrontendOptionAddSelect("FED_RGL", 0, 0, MENUALIGN_LEFT, off_on, 2, (int8*)&CustomPipes::GlossEnable, false, nil, "Graphics", "NeoRoadGloss");
-#else
-		FrontendOptionSetCursor(MENUPAGE_DISPLAY_SETTINGS, -3, false);
-		FrontendOptionAddSelect("FED_VPL", 0, 0, MENUALIGN_LEFT, vehPipelineNames, ARRAY_SIZE(vehPipelineNames), (int8*)&CustomPipes::VehiclePipeSwitch, false, nil, "Graphics", "VehiclePipeline");
-		FrontendOptionAddSelect("FED_PRM", 0, 0, MENUALIGN_LEFT, off_on, 2, (int8*)&CustomPipes::RimlightEnable, false, nil, "Graphics", "NeoRimLight");
-		FrontendOptionAddSelect("FED_WLM", 0, 0, MENUALIGN_LEFT, off_on, 2, (int8*)&CustomPipes::LightmapEnable, false, nil, "Graphics", "NeoLightMaps");
-		FrontendOptionAddSelect("FED_RGL", 0, 0, MENUALIGN_LEFT, off_on, 2, (int8*)&CustomPipes::GlossEnable, false, nil, "Graphics", "NeoRoadGloss");
-#endif
-		CFileMgr::CloseFile(fd);
-	}
-#endif
-	// Add outsourced language translations, if files are found
-#ifdef MORE_LANGUAGES
-	int fd2;
-	FrontendOptionSetCursor(MENUPAGE_LANGUAGE_SETTINGS, 5, false);
-#if 0
-	if (fd = CFileMgr::OpenFile("text/polish.gxt")) {
-		if (fd2 = CFileMgr::OpenFile("models/fonts_p.txd")) {
-			FrontendOptionAddDynamic("FEL_POL", 0, 0, MENUALIGN_CENTER, nil, nil, LangPolSelect, nil, nil);
-			CFileMgr::CloseFile(fd2);
-		}
-		CFileMgr::CloseFile(fd);
-	}
-#endif
-
-	if (fd = CFileMgr::OpenFile("text/russian.gxt")) {
-		if (fd2 = CFileMgr::OpenFile("models/fonts_r.txd")) {
-			FrontendOptionAddDynamic("FEL_RUS", 0, 0, MENUALIGN_CENTER, nil, nil, LangRusSelect, nil, nil);
-			CFileMgr::CloseFile(fd2);
-		}
-		CFileMgr::CloseFile(fd);
-	}
-
-#if 0
-	if (fd = CFileMgr::OpenFile("text/japanese.gxt")) {
-		if (fd2 = CFileMgr::OpenFile("models/fonts_j.txd")) {
-			FrontendOptionAddDynamic("FEL_JAP", 0, 0, MENUALIGN_CENTER, nil, nil, LangJapSelect, nil, nil);
-			CFileMgr::CloseFile(fd2);
-		}
-		CFileMgr::CloseFile(fd);
-	}
-#endif
-#endif
-
+	// OPTIMIZACIÓN GMA 3150: Vaciado por completo para evitar accesos al disco duro 
+	// lentos en el arranque (Lecturas innecesarias de texturas Neo, etc.)
 }
 #endif
 
@@ -348,7 +285,6 @@ void LoadINIControllerSettings()
 		XINPUT_STATE xstate;
 		memset(&xstate, 0, sizeof(XINPUT_STATE));
 
-		// Firstly confirm & set joy 1
 		if (XInputGetState(storedJoy1, &xstate) == ERROR_SUCCESS) {
 			CPad::XInputJoy1 = storedJoy1;
 		}
@@ -362,7 +298,6 @@ void LoadINIControllerSettings()
 			}
 		}
 
-		// There is no plug event on XInput, so let's leave XInputJoy1/2 as 0/1 respectively, and hotplug will be possible.
 		if (CPad::XInputJoy1 == -1) {
 			CPad::XInputJoy1 = 0;
 			CPad::XInputJoy2 = 1;
@@ -374,7 +309,6 @@ void LoadINIControllerSettings()
 	ReadIniIfExists("Controller", "JoystickName", gSelectedJoystickName, 128);
 #endif
 #endif
-	// force to default GTA behaviour (never overwrite bindings on joy change/initialization) if user init'ed/set bindings before we introduced that
 	if (!ReadIniIfExists("Controller", "PadButtonsInited", &ControlsManager.ms_padButtonsInited)) {
 		ControlsManager.ms_padButtonsInited = cfg.get("Bindings").size() != 0 ? 16 : 0;
 	}
@@ -437,10 +371,8 @@ void SaveINIControllerSettings()
 	for (int32 i = 0; i < MAX_CONTROLLERACTIONS; i++) {
 		char value[128] = { '\0' };
 
-		// upper limit should've been GetNumOfSettingsForAction(i), but sadly even R* doesn't use it's own system correctly, and there are gaps between orders.
 		for (int32 j = SETORDER_1; j < MAX_SETORDERS; j++){
 
-			// We respect the m_ContSetOrder, and join/implode/order the bindings according to that; using comma as seperator.
 			for (int32 k = 0; k < MAX_CONTROLLERTYPES; k++){
 				if (ControlsManager.m_aSettings[i][k].m_ContSetOrder == j) {
 					char next[32];
@@ -465,7 +397,7 @@ void SaveINIControllerSettings()
 		}
 		int len = strlen(value);
 		if (len > 0)
-			value[len - 1] = '\0'; // to remove comma
+			value[len - 1] = '\0'; 
 
 		StoreIni("Bindings", iniControllerActions[i], value, 128);
 	}
@@ -492,7 +424,6 @@ bool LoadINISettings()
 	ReadIniIfExists("VideoMode", "Height", &FrontEndMenuManager.m_nPrefsHeight);
 	ReadIniIfExists("VideoMode", "Depth", &FrontEndMenuManager.m_nPrefsDepth);
 	ReadIniIfExists("VideoMode", "Subsystem", &FrontEndMenuManager.m_nPrefsSubsystem);
-	// Windowed mode is loaded below in CUSTOM_FRONTEND_OPTIONS section
 #else
 	ReadIniIfExists("Graphics", "VideoMode", &FrontEndMenuManager.m_nDisplayVideoMode);
 #endif
@@ -565,10 +496,7 @@ bool LoadINISettings()
 			if (option.m_Action == MENUACTION_NOTHING)
 				break;
 				
-			// CFO check
 			if (option.m_Action < MENUACTION_NOTHING && option.m_CFO->save) {
-				// Migrate from old .ini to new .ini
-				// Old values can only be int8, new ones can contain float if it is slider
 				if (migrate && ReadIniIfExists("FrontendOptions", option.m_CFO->save, (int8*)option.m_CFO->value))
 					cfg["FrontendOptions"].remove(option.m_CFO->save);
 				else if (option.m_Action == MENUACTION_CFO_SLIDER)
@@ -584,11 +512,17 @@ bool LoadINISettings()
 	}
 #endif
 
-	// Fetched in above block, but needs evaluation
 #ifdef PED_CAR_DENSITY_SLIDERS
 	CPopulation::MaxNumberOfPedsInUse = DEFAULT_MAX_NUMBER_OF_PEDS * CIniFile::PedNumberMultiplier;
 	CPopulation::MaxNumberOfPedsInUseInterior = DEFAULT_MAX_NUMBER_OF_PEDS_INTERIOR * CIniFile::PedNumberMultiplier;
 	CCarCtrl::MaxNumberOfCarsInUse = DEFAULT_MAX_NUMBER_OF_CARS * CIniFile::CarNumberMultiplier;
+#endif
+
+	// OPTIMIZACIÓN GMA 3150: Forzar opciones gráficas pesadas a falso
+	CMBlur::BlurOn = false;
+#ifdef EXTENDED_COLOURFILTER
+	CPostFX::BlurOn = false;
+	CPostFX::MotionBlurOn = false;
 #endif
 
 	return true;
@@ -601,7 +535,6 @@ void SaveINISettings()
 	StoreIni("VideoMode", "Height", FrontEndMenuManager.m_nPrefsHeight);
 	StoreIni("VideoMode", "Depth", FrontEndMenuManager.m_nPrefsDepth);
 	StoreIni("VideoMode", "Subsystem", FrontEndMenuManager.m_nPrefsSubsystem);
-	// Windowed mode is loaded below in CUSTOM_FRONTEND_OPTIONS section
 #else
 	StoreIni("Graphics", "VideoMode", FrontEndMenuManager.m_nDisplayVideoMode);
 #endif
@@ -688,495 +621,11 @@ void SaveINISettings()
 #endif
 
 #ifdef DEBUGMENU
-void WeaponCheat1();
-void WeaponCheat2();
-void WeaponCheat3();
-void HealthCheat();
-void VehicleCheat(int model);
-void BlowUpCarsCheat();
-void ChangePlayerCheat();
-void MayhemCheat();
-void EverybodyAttacksPlayerCheat();
-void WeaponsForAllCheat();
-void FastTimeCheat();
-void SlowTimeCheat();
-void MoneyCheat();
-void ArmourCheat();
-void WantedLevelUpCheat();
-void WantedLevelDownCheat();
-void SunnyWeatherCheat();
-void CloudyWeatherCheat();
-void RainyWeatherCheat();
-void FoggyWeatherCheat();
-void FastWeatherCheat();
-void OnlyRenderWheelsCheat();
-void ChittyChittyBangBangCheat();
-void StrongGripCheat();
-void SpecialCarCheats();
-void PickUpChicksCheat();
-
-DebugMenuEntry *carCol1;
-DebugMenuEntry *carCol2;
-
-void
-SpawnCar(int id)
-{
-	CVector playerpos;
-	CStreaming::RequestModel(id, 0);
-	CStreaming::LoadAllRequestedModels(false);
-	if(CStreaming::HasModelLoaded(id)){
-		playerpos = FindPlayerCoors();
-		int node;
-		if(!CModelInfo::IsBoatModel(id)){
-			node = ThePaths.FindNodeClosestToCoors(playerpos, 0, 100.0f, false, false);
-			if(node < 0)
-				return;
-		}
-
-		CVehicle *v;
-		if(CModelInfo::IsBoatModel(id))
-			v = new CBoat(id, RANDOM_VEHICLE);
-		else if(CModelInfo::IsBikeModel(id))
-			v = new CBike(id, RANDOM_VEHICLE);
-		else
-			v = new CAutomobile(id, RANDOM_VEHICLE);
-
-		v->bHasBeenOwnedByPlayer = true;
-		if(carCol1)
-			DebugMenuEntrySetAddress(carCol1, &v->m_currentColour1);
-		if(carCol2)
-			DebugMenuEntrySetAddress(carCol2, &v->m_currentColour2);
-
-		if(CModelInfo::IsBoatModel(id))
-			v->SetPosition(TheCamera.GetPosition() + TheCamera.GetForward()*15.0f);
-		else
-			v->SetPosition(ThePaths.m_pathNodes[node].GetPosition());
-
-		v->GetMatrix().GetPosition().z += 4.0f;
-		v->SetOrientation(0.0f, 0.0f, 3.49f);
-		v->SetStatus(STATUS_ABANDONED);
-		v->m_nDoorLock = CARLOCK_UNLOCKED;
-		CWorld::Add(v);
-	}
-}
-
-static void
-FixCar(void)
-{
-	CVehicle *veh = FindPlayerVehicle();
-	if(veh == nil)
-		return;
-	veh->m_fHealth = 1000.0f;
-	if(veh->IsCar()){
-		((CAutomobile*)veh)->Damage.SetEngineStatus(0);
-		((CAutomobile*)veh)->Fix();
-	}else if(veh->IsBike()){
-		((CBike*)veh)->Fix();
-	}
-}
-
-#ifdef MAP_ENHANCEMENTS
-static void
-TeleportToWaypoint(void)
-{
-	if (CRadar::TargetMarkerId == -1)
-		return;
-	CEntity* pEntityToTeleport = FindPlayerEntity();
-	CVector vNewPos = CRadar::TargetMarkerPos;
-	CStreaming::LoadScene(vNewPos);
-	CStreaming::LoadSceneCollision(vNewPos);
-	vNewPos.z = CWorld::FindGroundZForCoord(vNewPos.x, vNewPos.y) + pEntityToTeleport->GetDistanceFromCentreOfMassToBaseOfModel();
-	pEntityToTeleport->Teleport(vNewPos);
-}
-#endif
-
-static void
-SwitchCarCollision(void)
-{
-	if (FindPlayerVehicle() && FindPlayerVehicle()->IsCar())
-		FindPlayerVehicle()->bUsesCollision = !FindPlayerVehicle()->bUsesCollision;
-}
-
-static void
-ToggleComedy(void)
-{
-	CVehicle *veh = FindPlayerVehicle();
-	if(veh == nil)
-		return;
-	veh->bComedyControls = !veh->bComedyControls;
-}
-
-static void
-PlaceOnRoad(void)
-{
-	CVehicle *veh = FindPlayerVehicle();
-	if(veh == nil)
-		return;
-
-	if(veh->IsCar())
-		((CAutomobile*)veh)->PlaceOnRoadProperly();
-}
-
-static void
-ResetCamStatics(void)
-{
-	TheCamera.Cams[TheCamera.ActiveCam].ResetStatics = true;
-}
-
-#ifdef MISSION_SWITCHER
-int8 nextMissionToSwitch = 0;
-static void
-SwitchToMission(void)
-{
-	CTheScripts::SwitchToMission(nextMissionToSwitch);
-}
-#endif
-
-static const char *carnames[] = {
-	"landstal", "idaho", "stinger", "linerun", "peren", "sentinel", "rio", "firetruk", "trash", "stretch", "manana",
-	"infernus", "voodoo", "pony", "mule", "cheetah", "ambulan", "fbicar", "moonbeam", "esperant", "taxi", "washing",
-	"bobcat", "mrwhoop", "bfinject", "hunter", "police", "enforcer", "securica", "banshee", "predator", "bus",
-	"rhino", "barracks", "cuban", "chopper", "angel", "coach", "cabbie", "stallion", "rumpo", "rcbandit", "romero",
-	"packer", "sentxs", "admiral", "squalo", "seaspar", "pizzaboy", "gangbur", "airtrain", "deaddodo", "speeder",
-	"reefer", "tropic", "flatbed", "yankee", "caddy", "zebra", "topfun", "skimmer", "pcj600", "faggio", "freeway",
-	"rcbaron", "rcraider", "glendale", "oceanic", "sanchez", "sparrow", "patriot", "lovefist", "coastg", "dinghy",
-	"hermes", "sabre", "sabretur", "pheonix", "walton", "regina", "comet", "deluxo", "burrito", "spand", "marquis",
-	"baggage", "kaufman", "maverick", "vcnmav", "rancher", "fbiranch", "virgo", "greenwoo", "jetmax", "hotring",
-	"sandking", "blistac", "polmav", "boxville", "benson", "mesa", "rcgoblin", "hotrina", "hotrinb",
-	"bloodra", "bloodrb", "vicechee"
-};
-
-static CTweakVar** TweakVarsList;
-static int TweakVarsListSize = -1;
-static bool bAddTweakVarsNow = false;
-static const char *pTweakVarsDefaultPath = NULL;
-
-void CTweakVars::Add(CTweakVar *var)
-{
-	if(TweakVarsListSize == -1) {
-		TweakVarsList = (CTweakVar**)malloc(64 * sizeof(CTweakVar*));
-		TweakVarsListSize = 0;
-	}
-	if(TweakVarsListSize > 63)
-		TweakVarsList = (CTweakVar**) realloc(TweakVarsList, (TweakVarsListSize + 1) * sizeof(CTweakVar*));
-
-	TweakVarsList[TweakVarsListSize++] = var;
-//	TweakVarsList.push_back(var);
-	
-	if ( bAddTweakVarsNow )
-		var->AddDBG(pTweakVarsDefaultPath);
-}
-
-void CTweakVars::AddDBG(const char *path)
-{
-	pTweakVarsDefaultPath = path;
-
-	for(int i = 0; i < TweakVarsListSize; ++i)
-		TweakVarsList[i]->AddDBG(pTweakVarsDefaultPath);
-	
-	bAddTweakVarsNow = true;
-}
-
-void CTweakSwitch::AddDBG(const char *path)
-{		
-	DebugMenuEntry *e = DebugMenuAddVar(m_pPath == NULL ? path : m_pPath, m_pVarName, (int32_t *)m_pIntVar, m_pFunc, 1, m_nMin, m_nMax, m_aStr);
-	DebugMenuEntrySetWrap(e, true);
-}
-	
-void CTweakFunc::AddDBG  (const char *path) { DebugMenuAddCmd     (m_pPath == NULL ? path : m_pPath, m_pVarName, m_pFunc); }
-void CTweakBool::AddDBG  (const char *path) { DebugMenuAddVarBool8(m_pPath == NULL ? path : m_pPath, m_pVarName, (int8_t *)m_pBoolVar,  NULL); }
-void CTweakInt8::AddDBG  (const char *path) { DebugMenuAddVar     (m_pPath == NULL ? path : m_pPath, m_pVarName, (int8_t *)m_pIntVar,   NULL, m_nStep, m_nLoawerBound, m_nUpperBound, NULL); }
-void CTweakUInt8::AddDBG (const char *path) { DebugMenuAddVar     (m_pPath == NULL ? path : m_pPath, m_pVarName, (uint8_t *)m_pIntVar,  NULL, m_nStep, m_nLoawerBound, m_nUpperBound, NULL); }
-void CTweakInt16::AddDBG (const char *path) { DebugMenuAddVar     (m_pPath == NULL ? path : m_pPath, m_pVarName, (int16_t *)m_pIntVar,  NULL, m_nStep, m_nLoawerBound, m_nUpperBound, NULL); }
-void CTweakUInt16::AddDBG(const char *path) { DebugMenuAddVar     (m_pPath == NULL ? path : m_pPath, m_pVarName, (uint16_t *)m_pIntVar, NULL, m_nStep, m_nLoawerBound, m_nUpperBound, NULL); }
-void CTweakInt32::AddDBG (const char *path) { DebugMenuAddVar     (m_pPath == NULL ? path : m_pPath, m_pVarName, (int32_t *)m_pIntVar,  NULL, m_nStep, m_nLoawerBound, m_nUpperBound, NULL); }
-void CTweakUInt32::AddDBG(const char *path) { DebugMenuAddVar     (m_pPath == NULL ? path : m_pPath, m_pVarName, (uint32_t *)m_pIntVar, NULL, m_nStep, m_nLoawerBound, m_nUpperBound, NULL); }
-void CTweakFloat::AddDBG (const char *path) { DebugMenuAddVar     (m_pPath == NULL ? path : m_pPath, m_pVarName, (float *)m_pIntVar,    NULL, m_nStep, m_nLoawerBound, m_nUpperBound); }
-
-/*
-static const char *wt[] = {
-			"Sunny", "Cloudy", "Rainy", "Foggy"
-		};
-
-SETTWEAKPATH("TEST");		
-TWEAKSWITCH(CWeather::NewWeatherType, 0, 3, wt, NULL);
-*/
-
-void
-switchWeather(void)
-{
-	CWeather::StreamAfterRainTimer = 0;
-}
-
 void
 DebugMenuPopulate(void)
 {
-	if(1){
-		static const char *weathers[] = {
-			"Sunny", "Cloudy", "Rainy", "Foggy", "Extrasunny", "Stormy"
-		};
-		static const char *extracols[] = {
-			"1 - Malibu club",
-			"2 - Strib club",
-			"3 - Hotel",
-			"4 - Bank",
-			"5 - Police HQ",
-			"6 - Mall",
-			"7 - Rifle Range",
-			"8 - Mansion",
-			"9 - Dirt ring",
-			"10 - Blood ring",
-			"11 - Hot ring",
-			"12 - Concert hall",
-			"13 - Auntie Poulets",
-			"14 - Intro at docks",
-			"15 - Biker bar",
-			"16 - Intro cafe",
-			"17 - Studio",
-			"18", "19", "20", "21", "22", "23", "24"
-		};
-		DebugMenuEntry *e;
-		e = DebugMenuAddVar("Time & Weather", "Current Hour", &CClock::GetHoursRef(), nil, 1, 0, 23, nil);
-		DebugMenuEntrySetWrap(e, true);
-		e = DebugMenuAddVar("Time & Weather", "Current Minute", &CClock::GetMinutesRef(),
-			[](){ CWeather::InterpolationValue = CClock::GetMinutes()/60.0f; }, 1, 0, 59, nil);
-			DebugMenuEntrySetWrap(e, true);
-		e = DebugMenuAddVar("Time & Weather", "Old Weather", (int16*)&CWeather::OldWeatherType, switchWeather, 1, 0, 5, weathers);
-		DebugMenuEntrySetWrap(e, true);
-		e = DebugMenuAddVar("Time & Weather", "New Weather", (int16*)&CWeather::NewWeatherType, switchWeather, 1, 0, 5, weathers);
-		DebugMenuEntrySetWrap(e, true);
-		DebugMenuAddVarBool32("Time & Weather", "Extracolours On", &CTimeCycle::m_bExtraColourOn, nil);
-		DebugMenuAddVar("Time & Weather", "Extracolour", &CTimeCycle::m_ExtraColour, nil, 1, 0, 23, extracols);
-		DebugMenuAddVar("Time & Weather", "Time scale", (float*)&CTimer::GetTimeScale(), nil, 0.1f, 0.0f, 10.0f);
-
-		DebugMenuAddCmd("Cheats", "Weapon set 1", WeaponCheat1);
-		DebugMenuAddCmd("Cheats", "Weapon set 2", WeaponCheat2);
-		DebugMenuAddCmd("Cheats", "Weapon set 3", WeaponCheat3);
-		DebugMenuAddCmd("Cheats", "Money", MoneyCheat);
-		DebugMenuAddCmd("Cheats", "Health", HealthCheat);
-		DebugMenuAddCmd("Cheats", "Wanted level up", WantedLevelUpCheat);
-		DebugMenuAddCmd("Cheats", "Wanted level down", WantedLevelDownCheat);
-		DebugMenuAddCmd("Cheats", "Tank", []() { VehicleCheat(MI_TAXI); });
-		DebugMenuAddCmd("Cheats", "Blow up cars", BlowUpCarsCheat);
-		DebugMenuAddCmd("Cheats", "Change player", ChangePlayerCheat);
-		DebugMenuAddCmd("Cheats", "Mayhem", MayhemCheat);
-		DebugMenuAddCmd("Cheats", "Everybody attacks player", EverybodyAttacksPlayerCheat);
-		DebugMenuAddCmd("Cheats", "Weapons for all", WeaponsForAllCheat);
-		DebugMenuAddCmd("Cheats", "Fast time", FastTimeCheat);
-		DebugMenuAddCmd("Cheats", "Slow time", SlowTimeCheat);
-		DebugMenuAddCmd("Cheats", "Armour", ArmourCheat);
-		DebugMenuAddCmd("Cheats", "Sunny weather", SunnyWeatherCheat);
-		DebugMenuAddCmd("Cheats", "Cloudy weather", CloudyWeatherCheat);
-		DebugMenuAddCmd("Cheats", "Rainy weather", RainyWeatherCheat);
-		DebugMenuAddCmd("Cheats", "Foggy weather", FoggyWeatherCheat);
-		DebugMenuAddCmd("Cheats", "Fast weather", FastWeatherCheat);
-		DebugMenuAddCmd("Cheats", "Only render wheels", OnlyRenderWheelsCheat);
-		DebugMenuAddCmd("Cheats", "Chitty chitty bang bang", ChittyChittyBangBangCheat);
-		DebugMenuAddCmd("Cheats", "Strong grip", StrongGripCheat);
-		DebugMenuAddCmd("Cheats", "Special car", SpecialCarCheats);
-		DebugMenuAddCmd("Cheats", "Pickup chicks", PickUpChicksCheat);
-
-		static int spawnCarId = MI_LANDSTAL;
-		e = DebugMenuAddVar("Spawn", "Spawn Car ID", &spawnCarId, nil, 1, MI_LANDSTAL, MI_VICECHEE, carnames);
-		DebugMenuEntrySetWrap(e, true);
-		DebugMenuAddCmd("Spawn", "Spawn Car", [](){
-			if(spawnCarId == MI_CHOPPER ||
-			   spawnCarId == MI_AIRTRAIN ||
-			   spawnCarId == MI_DEADDODO)
-				return;
-			SpawnCar(spawnCarId);
-		});
-		static uint8 dummy;
-		carCol1 = DebugMenuAddVar("Spawn", "First colour", &dummy, nil, 1, 0, 255, nil);
-		carCol2 = DebugMenuAddVar("Spawn", "Second colour", &dummy, nil, 1, 0, 255, nil);
-		DebugMenuAddCmd("Spawn", "Spawn Stinger", [](){ SpawnCar(MI_STINGER); });
-		DebugMenuAddCmd("Spawn", "Spawn Infernus", [](){ SpawnCar(MI_INFERNUS); });
-		DebugMenuAddCmd("Spawn", "Spawn Cheetah", [](){ SpawnCar(MI_CHEETAH); });
-		DebugMenuAddCmd("Spawn", "Spawn Phoenix", [](){ SpawnCar(MI_PHEONIX); });
-		DebugMenuAddCmd("Spawn", "Spawn Banshee", [](){ SpawnCar(MI_BANSHEE); });
-		DebugMenuAddCmd("Spawn", "Spawn Esperanto", [](){ SpawnCar(MI_ESPERANT); });
-		DebugMenuAddCmd("Spawn", "Spawn Stallion", [](){ SpawnCar(MI_STALLION); });
-		DebugMenuAddCmd("Spawn", "Spawn Admiral", [](){ SpawnCar(MI_ADMIRAL); });
-		DebugMenuAddCmd("Spawn", "Spawn Washington", [](){ SpawnCar(MI_WASHING); });
-		DebugMenuAddCmd("Spawn", "Spawn Taxi", [](){ SpawnCar(MI_TAXI); });
-		DebugMenuAddCmd("Spawn", "Spawn Police", [](){ SpawnCar(MI_POLICE); });
-		DebugMenuAddCmd("Spawn", "Spawn Enforcer", [](){ SpawnCar(MI_ENFORCER); });
-		DebugMenuAddCmd("Spawn", "Spawn Cuban", [](){ SpawnCar(MI_CUBAN); });
-		DebugMenuAddCmd("Spawn", "Spawn Voodoo", [](){ SpawnCar(MI_VOODOO); });
-		DebugMenuAddCmd("Spawn", "Spawn BF injection", [](){ SpawnCar(MI_BFINJECT); });
-		DebugMenuAddCmd("Spawn", "Spawn Maverick", [](){ SpawnCar(MI_MAVERICK); });
-		DebugMenuAddCmd("Spawn", "Spawn VCN Maverick", [](){ SpawnCar(MI_VCNMAV); });
-		DebugMenuAddCmd("Spawn", "Spawn Sparrow", [](){ SpawnCar(MI_SPARROW); });
-		DebugMenuAddCmd("Spawn", "Spawn Sea Sparrow", [](){ SpawnCar(MI_SEASPAR); });
-		DebugMenuAddCmd("Spawn", "Spawn Hunter", [](){ SpawnCar(MI_HUNTER); });
-		DebugMenuAddCmd("Spawn", "Spawn Rhino", [](){ SpawnCar(MI_RHINO); });
-		DebugMenuAddCmd("Spawn", "Spawn Firetruck", [](){ SpawnCar(MI_FIRETRUCK); });
-		DebugMenuAddCmd("Spawn", "Spawn Predator", [](){ SpawnCar(MI_PREDATOR); });
-		DebugMenuAddCmd("Spawn", "Spawn PCJ 600", [](){ SpawnCar(MI_PCJ600); });
-		DebugMenuAddCmd("Spawn", "Spawn Faggio", [](){ SpawnCar(MI_FAGGIO); });
-		DebugMenuAddCmd("Spawn", "Spawn Freeway", [](){ SpawnCar(MI_FREEWAY); });
-		DebugMenuAddCmd("Spawn", "Spawn Squalo", [](){ SpawnCar(MI_SQUALO); });
-		DebugMenuAddCmd("Spawn", "Spawn Skimmer", [](){ SpawnCar(MI_SKIMMER); });
-
-		DebugMenuAddVarBool8("Render", "Draw hud", &CHud::m_Wants_To_Draw_Hud, nil);
-#ifdef PROPER_SCALING	
-		DebugMenuAddVarBool8("Render", "Proper Scaling", &CDraw::ms_bProperScaling, nil);
-#endif
-#ifdef FIX_RADAR
-		DebugMenuAddVarBool8("Render", "Fix Radar", &CDraw::ms_bFixRadar, nil);
-#endif
-#ifdef FIX_SPRITES
-		DebugMenuAddVarBool8("Render", "Fix Sprites", &CDraw::ms_bFixSprites, nil);
-#endif
-		DebugMenuAddVarBool8("Render", "Backface Culling", &gBackfaceCulling, nil);
-		DebugMenuAddVarBool8("Render", "PS2 Alpha test Emu", &gPS2alphaTest, nil);
-		DebugMenuAddVarBool8("Render", "Frame limiter", &FrontEndMenuManager.m_PrefsFrameLimiter, nil);
-		DebugMenuAddVarBool8("Render", "VSynch", &FrontEndMenuManager.m_PrefsVsync, nil);
-		DebugMenuAddVar("Render", "Max FPS", &RsGlobal.maxFPS, nil, 1, 1, 1000, nil);
-#ifdef NEW_RENDERER
-		DebugMenuAddVarBool8("Render", "New Renderer", &gbNewRenderer, nil);
-extern bool gbRenderRoads;
-extern bool gbRenderEverythingBarRoads;
-extern bool gbRenderFadingInUnderwaterEntities;
-extern bool gbRenderFadingInEntities;
-extern bool gbRenderWater;
-extern bool gbRenderBoats;
-extern bool gbRenderVehicles;
-extern bool gbRenderWorld0;
-extern bool gbRenderWorld1;
-extern bool gbRenderWorld2;
-		DebugMenuAddVarBool8("Debug Render", "gbRenderRoads", &gbRenderRoads, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderEverythingBarRoads", &gbRenderEverythingBarRoads, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderFadingInUnderwaterEntities", &gbRenderFadingInUnderwaterEntities, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderFadingInEntities", &gbRenderFadingInEntities, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderWater", &gbRenderWater, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderBoats", &gbRenderBoats, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderVehicles", &gbRenderVehicles, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderWorld0", &gbRenderWorld0, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderWorld1", &gbRenderWorld1, nil);
-		DebugMenuAddVarBool8("Debug Render", "gbRenderWorld2", &gbRenderWorld2, nil);
-#endif
-
-#ifdef EXTENDED_COLOURFILTER
-		static const char *filternames[] = { "None", "Simple", "Normal", "Mobile" };
-		e = DebugMenuAddVar("Render", "Colourfilter", &CPostFX::EffectSwitch, nil, 1, CPostFX::POSTFX_OFF, CPostFX::POSTFX_MOBILE, filternames);
-		DebugMenuEntrySetWrap(e, true);
-		DebugMenuAddVar("Render", "Intensity", &CPostFX::Intensity, nil, 0.05f, 0, 10.0f);
-		DebugMenuAddVarBool8("Render", "Blur", &CPostFX::BlurOn, nil);
-		DebugMenuAddVarBool8("Render", "Motion Blur", &CPostFX::MotionBlurOn, nil);
-#endif
-		DebugMenuAddVar("Render", "Drunkness", &CMBlur::Drunkness, nil, 0.05f, 0, 1.0f);
-#ifndef MASTER
-		DebugMenuAddVarBool8("Render", "Occlusion debug", &bDispayOccDebugStuff, nil);
-#endif
-#ifdef LIBRW
-		DebugMenuAddVarBool32("Render", "MatFX env map apply light", &rw::MatFX::envMapApplyLight, nil);
-		DebugMenuAddVarBool32("Render", "MatFX env map flip U", &rw::MatFX::envMapFlipU, nil);
-		DebugMenuAddVarBool32("Render", "MatFX env map use matcolor", &rw::MatFX::envMapUseMatColor, nil);
-#endif
-#ifdef EXTENDED_PIPELINES
-		static const char *vehpipenames[] = { "MatFX", "Neo" };
-		e = DebugMenuAddVar("Render", "Vehicle Pipeline", &CustomPipes::VehiclePipeSwitch, nil,
-			1, CustomPipes::VEHICLEPIPE_MATFX, CustomPipes::VEHICLEPIPE_NEO, vehpipenames);
-		DebugMenuEntrySetWrap(e, true);
-		DebugMenuAddVar("Render", "Neo Vehicle Shininess", &CustomPipes::VehicleShininess, nil, 0.1f, 0, 1.0f);
-		DebugMenuAddVar("Render", "Neo Vehicle Specularity", &CustomPipes::VehicleSpecularity, nil, 0.1f, 0, 1.0f);
-		DebugMenuAddVarBool8("Render", "Neo Ped Rim light enable", &CustomPipes::RimlightEnable, nil);
-		DebugMenuAddVar("Render", "Mult", &CustomPipes::RimlightMult, nil, 0.1f, 0, 1.0f);
-		DebugMenuAddVarBool8("Render", "Neo World Lightmaps enable", &CustomPipes::LightmapEnable, nil);
-		DebugMenuAddVar("Render", "Mult", &CustomPipes::LightmapMult, nil, 0.1f, 0, 1.0f);
-		DebugMenuAddVarBool8("Render", "Neo Road Gloss enable", &CustomPipes::GlossEnable, nil);
-		DebugMenuAddVar("Render", "Mult", &CustomPipes::GlossMult, nil, 0.1f, 0, 1.0f);
-#endif
-		DebugMenuAddVarBool8("Debug Render", "Show Ped Paths", &gbShowPedPaths, nil);
-		DebugMenuAddVarBool8("Debug Render", "Show Car Paths", &gbShowCarPaths, nil);
-		DebugMenuAddVarBool8("Debug Render", "Show Car Path Links", &gbShowCarPathsLinks, nil);
-		DebugMenuAddVarBool8("Debug Render", "Show Collision Lines", &gbShowCollisionLines, nil);
-		DebugMenuAddVarBool8("Debug Render", "Show Collision Polys", &gbShowCollisionPolys, nil);
-		DebugMenuAddVarBool8("Debug Render", "Don't render Buildings", &gbDontRenderBuildings, nil);
-		DebugMenuAddVarBool8("Debug Render", "Don't render Big Buildings", &gbDontRenderBigBuildings, nil);
-		DebugMenuAddVarBool8("Debug Render", "Don't render Peds", &gbDontRenderPeds, nil);
-		DebugMenuAddVarBool8("Debug Render", "Don't render Vehicles", &gbDontRenderVehicles, nil);
-		DebugMenuAddVarBool8("Debug Render", "Don't render Objects", &gbDontRenderObjects, nil);
-		DebugMenuAddVarBool8("Debug Render", "Don't Render Water", &gbDontRenderWater, nil);
-		
-		
-#ifdef DRAW_GAME_VERSION_TEXT
-		DebugMenuAddVarBool8("Debug", "Version Text", &gbDrawVersionText, nil);
-#endif
-		DebugMenuAddVarBool8("Debug", "Show DebugStuffInRelease", &gbDebugStuffInRelease, nil);
-#ifdef TIMEBARS
-		DebugMenuAddVarBool8("Debug", "Show Timebars", &gbShowTimebars, nil);
-#endif
-#ifndef FINAL
-		DebugMenuAddVarBool8("Debug", "Use debug render groups", &bDebugRenderGroups, nil);
-		DebugMenuAddVarBool8("Debug", "Print Memory Usage", &gbPrintMemoryUsage, nil);
-#ifdef USE_CUSTOM_ALLOCATOR
-		DebugMenuAddCmd("Debug", "Parse Heap", ParseHeap);
-#endif
-#endif
-
-		DebugMenuAddVarBool8("Debug", "pad 1 -> pad 2", &CPad::m_bMapPadOneToPadTwo, nil);
-#ifdef GTA_SCENE_EDIT
-		DebugMenuAddVarBool8("Debug", "Edit on", &CSceneEdit::m_bEditOn, nil);
-#endif
-		//DebugMenuAddCmd("Debug", "Start Credits", CCredits::Start);
-		//DebugMenuAddCmd("Debug", "Stop Credits", CCredits::Stop);
-
-#ifdef RELOADABLES
-// maybe put it back if we have more to reload 
-//		DebugMenuAddCmd("Reload", "HUD.TXD", CHud::ReloadTXD);
-#endif
-
-#ifdef MAP_ENHANCEMENTS
-		DebugMenuAddCmd("Game", "Teleport to map waypoint", TeleportToWaypoint);
-#endif
-		DebugMenuAddCmd("Game", "Fix Car", FixCar);
-		DebugMenuAddCmd("Game", "Place Car on Road", PlaceOnRoad);
-		DebugMenuAddCmd("Game", "Switch car collision", SwitchCarCollision);
-		DebugMenuAddCmd("Game", "Toggle Comedy Controls", ToggleComedy);
-
-
-#ifdef MISSION_SWITCHER
-		DebugMenuEntry *missionEntry;
-		static const char* missions[] = {
-			"Initial", "Intro", "An Old Friend", "The Party", "Back Alley Brawl", "Jury Fury", "Riot",
-			"Treacherous Swine", "Mall Shootout", "Guardian Angels", "Sir, Yes Sir!", "All Hands On Deck!",
-			"The Chase", "Phnom Penh '86", "The Fastest Boat", "Supply & Demand", "Rub Out", "Death Row",
-			"Four Iron", "Demolition Man", "Two Bit Hit", "No Escape?", "The Shootist", "The Driver",
-			"The Job", "Gun Runner", "Boomshine Saigon", "Recruitment Drive", "Dildo Dodo", "Martha's Mug Shot",
-			"G-spotlight", "Shakedown", "Bar Brawl", "Cop Land", "Spilling the Beans", "Hit the Courier",
-			"Printworks Buy", "Sunshine Autos", "Interglobal Films Buy", "Cherry Popper Icecreams Buy",
-			"Kaufman Cabs Buy", "Malibu Club Buy", "The Boatyard Buy", "Pole Position Club Buy", "El Swanko Casa Buy",
-			"Links View Apartment Buy", "Hyman Condo Buy", "Ocean Heighs Aprt. Buy", "1102 Washington Street Buy",
-			"Vice Point Buy", "Skumole Shack Buy", "Cap the Collector", "Keep your Friends Close...",
-			"Alloy Wheels of Steel", "Messing with the Man", "Hog Tied", "Stunt Boat Challenge", "Cannon Fodder",
-			"Naval Engagement", "Trojan Voodoo", "Juju Scramble", "Bombs Away!", "Dirty Lickin's", "Love Juice",
-			"Psycho Killer", "Publicity Tour", "Weapon Range", "Road Kill", "Waste the Wife", "Autocide",
-			"Check Out at the Check In", "Loose Ends", "V.I.P.", "Friendly Rivalry", "Cabmaggedon", "TAXI DRIVER",
-			"PARAMEDIC", "FIREFIGHTER", "VIGILANTE", "HOTRING", "BLOODRING", "DIRTRING", "Sunshine Autos Races",
-			"Distribution", "Downtown Chopper Checkpoint", "Ocean Beach Chopper Checkpoint", "Vice Point Chopper Checkpoint",
-			"Little Haiti Chopper Checkpoint", "Trial by Dirt", "Test Track", "PCJ Playground", "Cone Crazy",
-			"PIZZA BOY", "RC Raider Pickup", "RC Bandit Race", "RC Baron Race", "Checkpoint Charlie"
-		};
-
-		missionEntry = DebugMenuAddVar("Game", "Select mission", &nextMissionToSwitch, nil, 1, 0, ARRAY_SIZE(missions) - 1, missions);
-		DebugMenuEntrySetWrap(missionEntry, true);
-		DebugMenuAddCmd("Game", "Start selected mission ", SwitchToMission);
-#endif
-		extern bool PrintDebugCode;
-		extern int16 DebugCamMode;
-		DebugMenuAddVarBool8("Cam", "Use mouse Cam", &CCamera::m_bUseMouse3rdPerson, nil);
-#ifdef FREE_CAM
-		DebugMenuAddVarBool8("Cam", "Free Cam", &CCamera::bFreeCam, nil);
-#endif
-		DebugMenuAddVarBool8("Cam", "Print Debug Code", &PrintDebugCode, nil);
-		DebugMenuAddVar("Cam", "Cam Mode", &DebugCamMode, nil, 1, 0, CCam::MODE_EDITOR, nil);
-		DebugMenuAddCmd("Cam", "Normal", []() { DebugCamMode = 0; });
-		DebugMenuAddCmd("Cam", "Reset Statics", ResetCamStatics);
-
-		CTweakVars::AddDBG("Debug");
-	}
+	// OPTIMIZACIÓN GMA 3150: Menú de debug vaciado por completo para ahorrar RAM, 
+	// evitar el registro de cientos de strings y acelerar el tiempo de inicialización de CPU.
 }
 #endif
 
@@ -1189,54 +638,10 @@ static char re3_buff[re3_buffsize];
 #ifndef MASTER
 void re3_assert(const char *expr, const char *filename, unsigned int lineno, const char *func)
 {
+	// OPTIMIZACIÓN: Vaciamos el string de error gigante. Cierra silenciosamente si hay error crítico.
 #ifdef _WIN32
-	int nCode;
-
-	strcpy_s(re3_buff, re3_buffsize, "Assertion failed!" );
-	strcat_s(re3_buff, re3_buffsize, "\n" );	
-	
-	strcat_s(re3_buff, re3_buffsize, "File: ");
-	strcat_s(re3_buff, re3_buffsize, filename );
-	strcat_s(re3_buff, re3_buffsize, "\n" );	
-
-	strcat_s(re3_buff, re3_buffsize, "Line: " );
-	_itoa_s( lineno, re3_buff + strlen(re3_buff), re3_buffsize - strlen(re3_buff), 10 );
-	strcat_s(re3_buff, re3_buffsize, "\n");
-	
-	strcat_s(re3_buff, re3_buffsize, "Function: ");
-	strcat_s(re3_buff, re3_buffsize, func );
-	strcat_s(re3_buff, re3_buffsize, "\n" );	
-	
-	strcat_s(re3_buff, re3_buffsize, "Expression: ");
-	strcat_s(re3_buff, re3_buffsize, expr);
-	strcat_s(re3_buff, re3_buffsize, "\n");
-
-	strcat_s(re3_buff, re3_buffsize, "\n" );
-	strcat_s(re3_buff, re3_buffsize, "(Press Retry to debug the application)");
-
-
-	nCode = ::MessageBoxA(nil, re3_buff, "reVC Assertion Failed!",
-		MB_ABORTRETRYIGNORE|MB_ICONHAND|MB_SETFOREGROUND|MB_TASKMODAL);
-
-	if (nCode == IDABORT)
-	{
-		raise(SIGABRT);
-		_exit(3);
-	}
-
-	if (nCode == IDRETRY)
-	{
-		__debugbreak();
-		return;
-	}
-
-	if (nCode == IDIGNORE)
-		return;
-
-	abort();
+	_exit(3);
 #else
-	// TODO
-	printf("\nreVC ASSERT FAILED\n\tFile: %s\n\tLine: %d\n\tFunction: %s\n\tExpression: %s\n",filename,lineno,func,expr);
 	assert(false);
 #endif
 }
@@ -1244,67 +649,22 @@ void re3_assert(const char *expr, const char *filename, unsigned int lineno, con
 
 void re3_debug(const char *format, ...)
 {
-#ifndef MASTER
-	va_list va;
-	va_start(va, format);
-#ifdef _WIN32
-	vsprintf_s(re3_buff, re3_buffsize, format, va);
-#else
-	vsprintf(re3_buff, format, va);
-#endif
-	va_end(va);
-#if defined ANDROID
-    __android_log_print(ANDROID_LOG_DEBUG, "reVC-DEBUG", re3_buff);
-#endif
-	printf("%s", re3_buff);
-	CDebug::DebugAddText(re3_buff);
-#endif
+	// OPTIMIZACIÓN GMA 3150: Formateo de strings (vsprintf) bloqueado para no gastar CPU por frame.
 }
 
 #ifndef MASTER
 void re3_trace(const char *filename, unsigned int lineno, const char *func, const char *format, ...)
 {
-	char buff[re3_buffsize *2];
-	va_list va;
-	va_start(va, format);
-#ifdef _WIN32
-	vsprintf_s(re3_buff, re3_buffsize, format, va);
-	va_end(va);
-	
-	sprintf_s(buff, re3_buffsize * 2, "[%s.%s:%d]: %s", filename, func, lineno, re3_buff);
-#else
-	vsprintf(re3_buff, format, va);
-	va_end(va);
-	
-	sprintf(buff, "[%s.%s:%d]: %s", filename, func, lineno, re3_buff);
-#endif
-#if defined ANDROID
-    __android_log_print(ANDROID_LOG_DEBUG, "reVC-TRACE", buff);
-#endif
-	OutputDebugString(buff);
+	// OPTIMIZACIÓN GMA 3150: Sin traces.
 }
 #endif
 
 #ifndef MASTER
 void re3_usererror(const char *format, ...)
 {
-	va_list va;
-	va_start(va, format);
 #ifdef _WIN32
-	vsprintf_s(re3_buff, re3_buffsize, format, va);
-	va_end(va);
-	
-	::MessageBoxA(nil, re3_buff, "reVC Error!",
-		MB_OK|MB_ICONHAND|MB_SETFOREGROUND|MB_TASKMODAL);
-
-	raise(SIGABRT);
 	_exit(3);
 #else
-	vsprintf(re3_buff, format, va);
-#if defined ANDROID
-    __android_log_print(ANDROID_LOG_ERROR, "reVC-ERROR", re3_buff);
-#endif
-	printf("\nreVC Error!\n\t%s\n",re3_buff);
 	assert(false);
 #endif
 }
@@ -1314,3 +674,12 @@ void re3_usererror(const char *format, ...)
 #ifdef VALIDATE_SAVE_SIZE
 int32 _saveBufCount;
 #endif
+
+// Stubs para el sistema de tweak (optimización GMA 3150)
+// Implementaciones vacías para satisfacer al enlazador
+void CTweakFunc::AddDBG(const char*) {}
+void CTweakUInt32::AddDBG(const char*) {}
+void CTweakBool::AddDBG(const char*) {}
+void CTweakInt32::AddDBG(const char*) {}
+void CTweakFloat::AddDBG(const char*) {}
+void CTweakVars::Add(CTweakVar*) {}

@@ -1,6 +1,8 @@
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "common.h"
 #include "platform.h"
-
 #include "Game.h"
 #include "main.h"
 #include "RwHelper.h"
@@ -125,13 +127,11 @@ void DoRWStuffEndOfFrame(void);
 #ifdef PS2_MENU
 void MessageScreen(char *msg)
 {
-	//TODO: stretch_screen
-	
 	CRect rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	CRGBA color(255, 255, 255, 255);
 
 	DoRWStuffStartOfFrame(50, 50, 50, 0, 0, 0, 255);
-	
+
 	CSprite2d::InitPerFrame();
 	CFont::InitPerFrame();
 	DefinedState();
@@ -139,10 +139,10 @@ void MessageScreen(char *msg)
 	CSprite2d *splash = LoadSplash(NULL);
 	splash->Draw(rect, color, color, color, color);
 	splash->DrawRect(CRect(SCREEN_SCALE_X(20.0f), SCREEN_SCALE_Y(110.0f), SCREEN_SCALE_X(620.0f), SCREEN_SCALE_Y(300.0f)), CRGBA(50, 50, 50, 192));
-	
+
 	CFont::SetFontStyle(FONT_BANK);
 	CFont::SetBackgroundOff();
-	CFont::SetWrapx(SCREEN_SCALE_FROM_RIGHT(190.0f)); // 450.0f
+	CFont::SetWrapx(SCREEN_SCALE_FROM_RIGHT(190.0f));
 	CFont::SetScale(SCREEN_SCALE_X(1.0f), SCREEN_SCALE_Y(1.0f));
 	CFont::SetCentreOn();
 	CFont::SetCentreSize(SCREEN_SCALE_X(450.0f));
@@ -153,7 +153,7 @@ void MessageScreen(char *msg)
 	CFont::SetPropOn();
 	CFont::PrintString(SCREEN_SCALE_X(320.0f), SCREEN_SCALE_Y(130.0f), TheText.Get(msg));
 	CFont::DrawFonts();
-	
+
 	DoRWStuffEndOfFrame();
 }
 #endif
@@ -163,17 +163,10 @@ CGame::InitialiseOnceBeforeRW(void)
 {
 	CFileMgr::Initialise();
 	CdStreamInit(MAX_CDCHANNELS);
-	debug("size of matrix %d\n", sizeof(CMatrix));
-	debug("size of placeable %d\n", sizeof(CPlaceable));
-	debug("size of entity %d\n", sizeof(CEntity));
-	debug("size of building %d\n", sizeof(CBuilding));
-	debug("size of dummy %d\n", sizeof(CDummy));
 #ifdef EXTENDED_COLOURFILTER
 	CPostFX::InitOnce();
 #endif
 #ifdef CUSTOM_FRONTEND_OPTIONS
-	// Not needed here but may be needed in future
-	// if (numCustomFrontendOptions == 0 && numCustomFrontendScreens == 0)
 	CustomFrontendOptionsPopulate();
 #endif
 	return true;
@@ -202,29 +195,20 @@ CGame::InitialiseRenderWare(void)
 #ifdef GTA_PS2
 	RpSkySelectTrueTSClipper(TRUE);
 	RpSkySelectTrueTLClipper(TRUE);
-
-	// PS2ManagerApplyDirectionalLightingCB() uploads the GTA lights
-	// directly without going through RpWorld and all that
 	SetupPS2ManagerDefaultLightingCallback();
 	PreAllocateRwObjects();
 #endif
 
-	/* Create camera */
 	Scene.camera = CameraCreate(SCREEN_WIDTH, SCREEN_HEIGHT, TRUE);
 	ASSERT(Scene.camera != nil);
-	if (!Scene.camera)
-	{
-		return (false);
-	}
-	
+	if (!Scene.camera) return (false);
+
 	RwCameraSetFarClipPlane(Scene.camera, 2000.0f);
 	RwCameraSetNearClipPlane(Scene.camera, 0.9f);
-	
+
 	CameraSize(Scene.camera, nil, DEFAULT_VIEWWINDOW, DEFAULT_ASPECT_RATIO);
-	
-	/* Create a world */
+
 	RwBBox  bbox;
-	
 	bbox.sup.x = bbox.sup.y = bbox.sup.z = 10000.0f;
 	bbox.inf.x = bbox.inf.y = bbox.inf.z = -10000.0f;
 
@@ -236,8 +220,7 @@ CGame::InitialiseRenderWare(void)
 		Scene.camera = nil;
 		return (false);
 	}
-	
-	/* Add the camera to the world */
+
 	RpWorldAddCamera(Scene.world, Scene.camera);
 	LightsCreate(Scene.world);
 
@@ -271,7 +254,7 @@ CGame::InitialiseRenderWare(void)
 	POP_MEMID();
 
 #ifdef EXTENDED_PIPELINES
-	CustomPipes::CustomPipeInit();	// need Scene.world for this
+	CustomPipes::CustomPipeInit();
 #endif
 #ifdef SCREEN_DROPLETS
 	ScreenDroplets::InitDraw();
@@ -292,27 +275,23 @@ void CGame::ShutdownRenderWare(void)
 	DestroySplashScreen();
 	CHud::Shutdown();
 	CFont::Shutdown();
-	
-	for ( int32 i = 0; i < NUMPLAYERS; i++ )
+
+	for (int32 i = 0; i < NUMPLAYERS; i++)
 		CWorld::Players[i].DeletePlayerSkin();
 
 	CPlayerSkin::Shutdown();
-	
 	DestroyDebugFont();
-	
-	/* Destroy world */
+
 	LightsDestroy(Scene.world);
 	RpWorldRemoveCamera(Scene.world, Scene.camera);
 	RpWorldDestroy(Scene.world);
-	
-	/* destroy camera */
 	CameraDestroy(Scene.camera);
-	
+
 	Scene.world = nil;
 	Scene.camera = nil;
-	
+
 	CVisibilityPlugins::Shutdown();
-	
+
 #ifdef USE_TEXTURE_POOL
 	_TexturePoolsShutdown();
 #endif
@@ -334,10 +313,10 @@ bool CGame::InitialiseOnceAfterRW(void)
 
 #ifndef GTA_PS2
 #ifdef EXTERNAL_3D_SOUND
-	if ( DMAudio.GetNum3DProvidersAvailable() == 0 )
+	if (DMAudio.GetNum3DProvidersAvailable() == 0)
 		FrontEndMenuManager.m_nPrefsAudio3DProviderIndex = NO_AUDIO_PROVIDER;
 
-	if ( FrontEndMenuManager.m_nPrefsAudio3DProviderIndex == AUDIO_PROVIDER_NOT_DETERMINED || FrontEndMenuManager.m_nPrefsAudio3DProviderIndex == -2 )
+	if (FrontEndMenuManager.m_nPrefsAudio3DProviderIndex == AUDIO_PROVIDER_NOT_DETERMINED || FrontEndMenuManager.m_nPrefsAudio3DProviderIndex == -2)
 	{
 		FrontEndMenuManager.m_PrefsSpeakers = 0;
 		FrontEndMenuManager.m_nPrefsAudio3DProviderIndex = DMAudio.AutoDetect3DProviders();
@@ -357,7 +336,7 @@ bool CGame::InitialiseOnceAfterRW(void)
 
 void
 CGame::FinalShutdown(void)
-{	
+{
 	CTxdStore::Shutdown();
 	CPedStats::Shutdown();
 	CdStreamShutdown();
@@ -368,15 +347,10 @@ bool CGame::Initialise(const char* datFile)
 	ResetLoadingScreenBar();
 	strcpy(aDatFile, datFile);
 
-#ifdef GTA_PS2
-	// TODO: upload VU0 collision code here
-#endif
-
 	CPools::Initialise();
 
 #ifndef GTA_PS2
 #ifdef PED_CAR_DENSITY_SLIDERS
-	// Load density values from gta3.ini only if our reVC.ini have them 0.6f
 	if (CIniFile::PedNumberMultiplier == 0.6f && CIniFile::CarNumberMultiplier == 0.6f)
 #endif
 		CIniFile::LoadIniFile();
@@ -394,7 +368,6 @@ bool CGame::Initialise(const char* datFile)
 	CTxdStore::AddRef(gameTxdSlot);
 
 #ifdef EXTENDED_PIPELINES
-	// for generic fallback
 	CustomPipes::SetTxdFindCallback();
 #endif
 
@@ -405,10 +378,6 @@ bool CGame::Initialise(const char* datFile)
 	CTxdStore::SetCurrentTxd(gameTxdSlot);
 	LoadingScreen("Loading the Game", "Setup game variables", nil);
 	POP_MEMID();
-
-#ifdef GTA_PS2
-	CDma::SyncChannel(0, true);
-#endif
 
 	CGameLogic::InitAtStartOfGame();
 	CReferences::Init();
@@ -458,35 +427,29 @@ bool CGame::Initialise(const char* datFile)
 	CFileLoader::LoadLevel("DATA\\DEFAULT.DAT");
 	CFileLoader::LoadLevel(datFile);
 
-	LoadingScreen("Loading the Game", "Add Particles", nil);
 	CWorld::AddParticles();
 	CVehicleModelInfo::LoadVehicleColours();
 	CVehicleModelInfo::LoadEnvironmentMaps();
 	CTheZones::PostZoneCreation();
 	POP_MEMID();
 
-	LoadingScreen("Loading the Game", "Setup paths", nil);
 	ThePaths.PreparePathData();
 	for (int i = 0; i < NUMPLAYERS; i++)
 		CWorld::Players[i].Clear();
 	CWorld::Players[0].LoadPlayerSkin();
 	TestModelIndices();
 
-	LoadingScreen("Loading the Game", "Setup water", nil);
 	CWaterLevel::Initialise("DATA\\WATER.DAT");
 	TheConsole.Init();
 	CDraw::SetFOV(120.0f);
 	CDraw::ms_fLODDistance = 500.0f;
 
-	LoadingScreen("Loading the Game", "Setup streaming", nil);
 	CStreaming::LoadInitialVehicles();
 	CStreaming::LoadInitialPeds();
 	CStreaming::RequestBigBuildings(LEVEL_GENERIC);
 	CStreaming::LoadAllRequestedModels(false);
 	CStreaming::RemoveIslandsNotUsed(currLevel);
-	printf("Streaming uses %zuK of its memory", CStreaming::ms_memoryUsed / 1024); // original modifier was %d
 
-	LoadingScreen("Loading the Game", "Load animations", GetRandomSplashScreen());
 	PUSH_MEMID(MEMID_ANIMATION);
 	CAnimManager::LoadAnimFiles();
 	POP_MEMID();
@@ -499,19 +462,15 @@ bool CGame::Initialise(const char* datFile)
 #ifdef SCREEN_DROPLETS
 	ScreenDroplets::Initialise();
 #endif
-	LoadingScreen("Loading the Game", "Find big buildings", nil);
 	CRenderer::Init();
 
-	LoadingScreen("Loading the Game", "Setup game variables", nil);
 	CRadar::Initialise();
 	CRadar::LoadTextures();
 	CWeapon::InitialiseWeapons();
 
-	LoadingScreen("Loading the Game", "Setup traffic lights", nil);
 	CTrafficLights::ScanForLightsOnMap();
 	CRoadBlocks::Init();
 
-	LoadingScreen("Loading the Game", "Setup game variables", nil);
 	CPopulation::Initialise();
 	CWorld::PlayerInFocus = 0;
 	CCoronas::Init();
@@ -525,13 +484,11 @@ bool CGame::Initialise(const char* datFile)
 	CSceneEdit::Initialise();
 #endif
 
-	LoadingScreen("Loading the Game", "Load scripts", nil);
 	PUSH_MEMID(MEMID_SCRIPT);
 	CTheScripts::Init();
 	CGangs::Initialise();
 	POP_MEMID();
 
-	LoadingScreen("Loading the Game", "Setup game variables", nil);
 	CClock::Initialise(1000);
 	CHeli::InitHelis();
 	CCranes::InitCranes();
@@ -547,18 +504,14 @@ bool CGame::Initialise(const char* datFile)
 	CBridge::Init();
 	CGarages::Init();
 
-	LoadingScreen("Loading the Game", "Position dynamic objects", nil);
-	LoadingScreen("Loading the Game", "Initialise vehicle paths", nil);
-
 	CTrain::InitTrains();
 	CPlane::InitPlanes();
 	CCredits::Init();
 	CRecordDataForChase::Init();
 	CReplay::Init();
 
-	LoadingScreen("Loading the Game", "Start script", nil);
 #ifdef PS2_MENU
-	if ( !TheMemoryCard.m_bWantToLoad )
+	if (!TheMemoryCard.m_bWantToLoad)
 #endif
 	{
 		CTheScripts::StartTestScript();
@@ -566,7 +519,6 @@ bool CGame::Initialise(const char* datFile)
 		TheCamera.Process();
 	}
 
-	LoadingScreen("Loading the Game", "Load scene", nil);
 	CCollision::ms_collisionInMemory = currLevel;
 	for (int i = 0; i < MAX_PADS; i++)
 		CPad::GetPad(i)->Clear(true);
@@ -581,7 +533,6 @@ bool CGame::Initialise(const char* datFile)
 	VarConsole.Add("Z PLAYER COORD", &PlayerCoords.z, 10.0f, -10000.0f, 10000.0f, true);
 	VarConsole.Add("UPDATE PLAYER COORD", &VarUpdatePlayerCoords, true);
 #endif
-
 
 	DMAudio.SetStartingTrackPositions(TRUE);
 	DMAudio.ChangeMusicMode(MUSICMODE_GAME);
@@ -605,19 +556,19 @@ bool CGame::ShutDown(void)
 	gPhoneInfo.Shutdown();
 	CWeapon::ShutdownWeapons();
 	CPedType::Shutdown();
-	
+
 	for (int32 i = 0; i < NUMPLAYERS; i++)
 	{
-		if ( CWorld::Players[i].m_pPed )
+		if (CWorld::Players[i].m_pPed)
 		{
 			CWorld::Remove(CWorld::Players[i].m_pPed);
 			delete CWorld::Players[i].m_pPed;
 			CWorld::Players[i].m_pPed = nil;
 		}
-		
+
 		CWorld::Players[i].Clear();
 	}
-	
+
 	CRenderer::Shutdown();
 	CWorld::ShutDown();
 	DMAudio.DestroyAllGameCreatedEntities();
@@ -653,7 +604,7 @@ void CGame::ReInitGameObjectVariables(void)
 {
 	CGameLogic::InitAtStartOfGame();
 #ifdef PS2_MENU
-	if ( !TheMemoryCard.m_bWantToLoad )
+	if (!TheMemoryCard.m_bWantToLoad)
 #endif
 	{
 		TheCamera.Init();
@@ -683,10 +634,10 @@ void CGame::ReInitGameObjectVariables(void)
 #endif
 	CWeapon::InitialiseWeapons();
 	CPopulation::Initialise();
-	
+
 	for (int i = 0; i < NUMPLAYERS; i++)
 		CWorld::Players[i].Clear();
-	
+
 	CWorld::PlayerInFocus = 0;
 	CAntennas::Init();
 	CGlass::Init();
@@ -714,9 +665,9 @@ void CGame::ReInitGameObjectVariables(void)
 	CParticle::ReloadConfig();
 
 #ifdef PS2_MENU
-	if ( !TheMemoryCard.m_bWantToLoad )
+	if (!TheMemoryCard.m_bWantToLoad)
 #else
-	if ( !FrontEndMenuManager.m_bWantToLoad )
+	if (!FrontEndMenuManager.m_bWantToLoad)
 #endif
 	{
 		CCranes::InitCranes();
@@ -726,15 +677,12 @@ void CGame::ReInitGameObjectVariables(void)
 		CTrain::InitTrains();
 		CPlane::InitPlanes();
 	}
-	
+
 	for (int32 i = 0; i < MAX_PADS; i++)
 		CPad::GetPad(i)->Clear(true);
 }
 
-void CGame::ReloadIPLs(void)
-{
-	// Empty and unused
-}
+void CGame::ReloadIPLs(void) {}
 
 void CGame::ShutDownForRestart(void)
 {
@@ -745,7 +693,7 @@ void CGame::ShutDownForRestart(void)
 	CReplay::EmptyReplayBuffer();
 	DMAudio.DestroyAllGameCreatedEntities();
 	CMovingThings::Shutdown();
-	
+
 	for (int i = 0; i < NUMPLAYERS; i++)
 		CWorld::Players[i].Clear();
 
@@ -759,7 +707,7 @@ void CGame::ShutDownForRestart(void)
 	CRadar::RemoveRadarSections();
 	FrontEndMenuManager.UnloadTextures();
 	CParticleObject::RemoveAllExpireableParticleObjects();
-	CWaterCreatures::RemoveAll(); 
+	CWaterCreatures::RemoveAll();
 	CSetPieces::Init();
 	CPedType::Shutdown();
 	CSpecialFX::Shutdown();
@@ -769,7 +717,7 @@ void CGame::InitialiseWhenRestarting(void)
 {
 	CRect rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	CRGBA color(255, 255, 255, 255);
-	
+
 	CTimer::Initialise();
 	CSprite2d::SetRecipNearClip();
 
@@ -783,10 +731,9 @@ void CGame::InitialiseWhenRestarting(void)
 	}
 
 	b_FoundRecentSavedGameWantToLoad = false;
-	
 	TheCamera.Init();
-	
-	if ( FrontEndMenuManager.m_bWantToLoad == true )
+
+	if (FrontEndMenuManager.m_bWantToLoad == true)
 	{
 #ifdef XBOX_MESSAGE_SCREEN
 		FrontEndMenuManager.SetDialogTimer(1000);
@@ -798,14 +745,14 @@ void CGame::InitialiseWhenRestarting(void)
 #endif
 		RestoreForStartLoad();
 	}
-	
+
 	ReInitGameObjectVariables();
-	
-	if ( FrontEndMenuManager.m_bWantToLoad == true )
+
+	if (FrontEndMenuManager.m_bWantToLoad == true)
 	{
 		FrontEndMenuManager.m_bWantToLoad = false;
 		InitRadioStationPositionList();
-		if ( GenericLoad() == true )
+		if (GenericLoad() == true)
 		{
 			DMAudio.ResetTimers(CTimer::GetTimeInMilliseconds());
 			CTrain::InitTrains();
@@ -813,12 +760,12 @@ void CGame::InitialiseWhenRestarting(void)
 		}
 		else
 		{
-			for ( int32 i = 0; i < 50; i++ )
+			for (int32 i = 0; i < 50; i++)
 			{
 				HandleExit();
-				FrontEndMenuManager.MessageScreen("FED_LFL", true); // Loading save game has failed. The game will restart now. 
+				FrontEndMenuManager.MessageScreen("FED_LFL", true);
 			}
-			
+
 			TheCamera.SetFadeColour(0, 0, 0);
 			ShutDownForRestart();
 			CTimer::Stop();
@@ -832,17 +779,22 @@ void CGame::InitialiseWhenRestarting(void)
 		FrontEndMenuManager.ProcessDialogTimer();
 #endif
 	}
-	
+
 	CTimer::Update();
-	
 	DMAudio.ChangeMusicMode(MUSICMODE_GAME);
 #ifdef USE_TEXTURE_POOL
 	_TexturePoolsUnknown(true);
 #endif
 }
 
-void CGame::Process(void) 
+void CGame::Process(void)
 {
+	// --- OPTIMIZACIN ATOM N450: TIME-SLICING ---
+	// Usamos un contador esttico para alternar qu sistema se actualiza en cada frame.
+	// Esto evita que la CPU calcule todo al mismo tiempo.
+	static uint32 frameCounter = 0;
+	frameCounter++;
+
 	CPad::UpdatePads();
 #ifdef USE_CUSTOM_ALLOCATOR
 	ProcessTidyUpMemory();
@@ -857,17 +809,13 @@ void CGame::Process(void)
 
 	CTheZones::Update();
 #ifdef SECUROM
-	if (CTimer::GetTimeInMilliseconds() >= (35 * 60 * 1000) && gameProcessPirateCheck == 0){
-		// if game not pirated
-		// gameProcessPirateCheck = 1;
-		// else
+	if (CTimer::GetTimeInMilliseconds() >= (35 * 60 * 1000) && gameProcessPirateCheck == 0) {
 		gameProcessPirateCheck = 2;
 	}
 #endif
-	uint32 startTime = CTimer::GetCurrentTimeInCycles() / CTimer::GetCyclesPerMillisecond();
 	CStreaming::Update();
-	uint32 processTime = CTimer::GetCurrentTimeInCycles() / CTimer::GetCyclesPerMillisecond() - startTime;
 	CWindModifiers::Number = 0;
+
 	if (!CTimer::GetIsPaused())
 	{
 #ifndef MASTER
@@ -879,8 +827,13 @@ void CGame::Process(void)
 		CSprite2d::SetRecipNearClip();
 		CSprite2d::InitPerFrame();
 		CFont::InitPerFrame();
-		CRecordDataForGame::SaveOrRetrieveDataForThisFrame();
-		CRecordDataForChase::SaveOrRetrieveDataForThisFrame();
+
+		// --- OPTIMIZACIN CPU: Reducir escritura en disco o memoria temporal
+		if (frameCounter % 4 == 0) {
+			CRecordDataForGame::SaveOrRetrieveDataForThisFrame();
+			CRecordDataForChase::SaveOrRetrieveDataForThisFrame();
+		}
+
 		CPad::DoCheats();
 		CClock::Update();
 		CWeather::Update();
@@ -906,26 +859,50 @@ void CGame::Process(void)
 		CParticle::Update();
 		gFireManager.Update();
 
-		// Otherwise even on 30 fps most probably you won't see any peds around Ocean View Hospital
-#if defined FIX_BUGS && !defined SQUEEZE_PERFORMANCE
-		if (processTime > 2) {
-#else
-		if (processTime >= 2) {
-#endif
-			CPopulation::Update(false);
-		} else {
-			uint32 startTime = CTimer::GetCurrentTimeInCycles() / CTimer::GetCyclesPerMillisecond();
+		// --- OPTIMIZACIN ATOM N450: Staggering Poblacin ---
+		// En vez de depender del tiempo exacto (que en Atom vara drsticamente),
+		// forzamos el clculo fuerte de peatones solo 1 de cada 3 frames.
+		if (frameCounter % 3 == 0) {
 			CPopulation::Update(true);
-			processTime = CTimer::GetCurrentTimeInCycles() / CTimer::GetCyclesPerMillisecond() - startTime;
 		}
+		else {
+			CPopulation::Update(false);
+		}
+
 		CWeapon::UpdateWeapons();
 		if (!CCutsceneMgr::IsRunning())
 			CTheCarGenerators::Process();
 		if (!CReplay::IsPlayingBack())
 			CCranes::UpdateCranes();
-		CClouds::Update();
+
+		// --- OPTIMIZACIN ATOM N450: APAGADO DE SISTEMAS INTILES ---
+		// Nubes y caones de agua consumen ciclos iterando matrices, afuera.
+		// CClouds::Update(); 
+		// CWaterCannons::Update(); 
+
+		// =========================================================
+		// --- SISTEMA DE GUARDADO: ABRIR MENÚ (TECLA F6) ---
+		// =========================================================
+#ifdef _WIN32
+		static bool bF6Pressed = false;
+		if (GetAsyncKeyState(VK_F6) & 0x8000) {
+			// Solo abrimos el menú si la tecla acaba de ser presionada, 
+			// no estamos en una cinemática, ni viendo una repetición.
+			if (!bF6Pressed && !CCutsceneMgr::IsRunning() && !CReplay::IsPlayingBack()) {
+
+				// Le decimos al motor que queremos guardar (como si pisáramos el disquete rosa del hotel)
+				FrontEndMenuManager.m_bWantToLoad = false;
+				FrontEndMenuManager.m_bActivateSaveMenu = true;
+
+			}
+			bF6Pressed = true;
+		}
+		else {
+			bF6Pressed = false;
+		}
+#endif
+		// =========================================================
 		CMovingThings::Update();
-		CWaterCannons::Update();
 		CUserDisplay::Process();
 		CReplay::Update();
 
@@ -947,19 +924,31 @@ void CGame::Process(void)
 		if (!CReplay::IsPlayingBack())
 			CGameLogic::Update();
 		CBridge::Update();
-		CCoronas::DoSunAndMoon();
-		CCoronas::Update();
-		CShadows::UpdateStaticShadows();
-		CShadows::UpdatePermanentShadows();
+
+		// --- OPTIMIZACIN ATOM N450: CORONAS Y SOMBRAS BLOQUEADAS ---
+		// Destruyen el fillrate y la CPU haciendo raycasts contra el suelo.
+		// CCoronas::DoSunAndMoon(); // Comentado opcional, apaga el sol visible en el cielo
+		// CCoronas::Update();       // Apaga luces de farolas y flares
+		// CShadows::UpdateStaticShadows(); 
+		// CShadows::UpdatePermanentShadows(); 
+
 		gPhoneInfo.Update();
+
 		if (!CReplay::IsPlayingBack())
 		{
 			PUSH_MEMID(MEMID_CARS);
-			if (processTime < 2)
+
+			// --- OPTIMIZACIN ATOM N450: Staggering Trfico ---
+			// Solo generamos autos nuevos cada 5 frames, y limpiamos cada 5 (pero desfasado)
+			if (frameCounter % 5 == 0) {
 				CCarCtrl::GenerateRandomCars();
-			CRoadBlocks::GenerateRoadBlocks();
-			CCarCtrl::RemoveDistantCars();
-			CCarCtrl::RemoveCarsIfThePoolGetsFull();
+				CRoadBlocks::GenerateRoadBlocks();
+			}
+			else if (frameCounter % 5 == 2) {
+				CCarCtrl::RemoveDistantCars();
+				CCarCtrl::RemoveCarsIfThePoolGetsFull();
+			}
+
 			POP_MEMID();
 		}
 	}
@@ -969,13 +958,9 @@ void CGame::Process(void)
 }
 
 #ifdef USE_CUSTOM_ALLOCATOR
-
-// TODO(MIAMI)
-
 int32 gNumMemMoved;
 
-bool
-MoveMem(void** ptr)
+bool MoveMem(void** ptr)
 {
 	if (*ptr) {
 		gNumMemMoved++;
@@ -988,349 +973,30 @@ MoveMem(void** ptr)
 	return false;
 }
 
-// Some convenience structs
-struct SkyDataPrefix
-{
-	uint32 pktSize1;
-	uint32 data;	// pointer to data as read from TXD
-	uint32 pktSize2;
-	uint32 unused;
-};
+struct SkyDataPrefix { uint32 pktSize1; uint32 data; uint32 pktSize2; uint32 unused; };
+struct DMAGIFUpload { uint32 tag1_qwc, tag1_addr; uint32 nop1, vif_direct1; uint32 giftag[4]; uint32 gs_bitbltbuf[4]; uint32 tag2_qwc, tag2_addr; uint32 nop2, vif_direct2; };
 
-struct DMAGIFUpload
-{
-	uint32 tag1_qwc, tag1_addr;	// dmaref
-	uint32 nop1, vif_direct1;
+RwTexture* MoveTextureMemoryCB(RwTexture* texture, void* pData) { return texture; }
 
-	uint32 giftag[4];
-	uint32 gs_bitbltbuf[4];
+bool MoveAtomicMemory(RpAtomic* atomic, bool onlyOne) { return false; }
+bool MoveColModelMemory(CColModel& colModel, bool onlyOne) { return false; }
 
-	uint32 tag2_qwc, tag2_addr;	// dmaref
-	uint32 nop2, vif_direct2;
-};
-
-// This is very scary. it depends on the exact memory layout of the DMA chains and whatnot
-RwTexture*
-MoveTextureMemoryCB(RwTexture* texture, void* pData)
-{
-#ifdef GTA_PS2
-	bool* pRet = (bool*)pData;
-	RwRaster* raster = RwTextureGetRaster(texture);
-	_SkyRasterExt* rasterExt = RASTEREXTFROMRASTER(raster);
-	if (raster->originalPixels == nil ||	// the raw data
-		raster->cpPixels == raster->originalPixels ||	// old format, can't handle it
-		rasterExt->dmaRefCount != 0 && rasterExt->dmaClrCount != 0)
-		return texture;
-
-	// this is the allocated pointer we will move
-	SkyDataPrefix* prefix = (SkyDataPrefix*)raster->originalPixels;
-	DMAGIFUpload* uploads = (DMAGIFUpload*)(prefix + 1);
-
-	// We have 4qw for each upload,
-	// i.e. for each buffer width of mip levels,
-	// and the palette if there is one.
-	// NB: this code does NOT support mipmaps!
-	// so we assume two uploads (pixels and palette)
-	//
-	// each upload looks like this:
-	//    (DMAcnt; NOP; VIF DIRECT(2))
-	//     giftag (1, A+D)
-	//      GS_BITBLTBUF
-	//    (DMAref->pixel data; NOP; VIF DIRECT(5))
-	// the DMArefs are what we have to adjust
-	uintptr dataDiff, upload1Diff, upload2Diff, pixelDiff, paletteDiff;
-	dataDiff = prefix->data - (uintptr)raster->originalPixels;
-	upload1Diff = uploads[0].tag2_addr - (uintptr)raster->originalPixels;
-	if (raster->palette)
-		upload2Diff = uploads[1].tag2_addr - (uintptr)raster->originalPixels;
-	pixelDiff = (uintptr)raster->cpPixels - (uintptr)raster->originalPixels;
-	if (raster->palette)
-		paletteDiff = (uintptr)raster->palette - (uintptr)raster->originalPixels;
-	uint8* newptr = (uint8*)gMainHeap.MoveMemory(raster->originalPixels);
-	if (newptr != raster->originalPixels) {
-		// adjust everything
-		prefix->data = (uintptr)newptr + dataDiff;
-		uploads[0].tag2_addr = (uintptr)newptr + upload1Diff;
-		if (raster->palette)
-			uploads[1].tag2_addr = (uintptr)newptr + upload2Diff;
-		raster->originalPixels = newptr;
-		raster->cpPixels = newptr + pixelDiff;
-		if (raster->palette)
-			raster->palette = newptr + paletteDiff;
-
-		if (pRet) {
-			*pRet = true;
-			return nil;
-		}
-	}
-#else
-	// nothing to do here really, everything should be in videomemory
-#endif
-	return texture;
-}
-
-bool
-MoveAtomicMemory(RpAtomic* atomic, bool onlyOne)
-{
-	RpGeometry* geo = RpAtomicGetGeometry(atomic);
-
-#if THIS_IS_COMPATIBLE_WITH_GTA3_RW31
-	if (MoveMem((void**)&geo->triangles) && onlyOne)
-		return true;
-	if (MoveMem((void**)&geo->matList.materials) && onlyOne)
-		return true;
-	if (MoveMem((void**)&geo->preLitLum) && onlyOne)
-		return true;
-	if (MoveMem((void**)&geo->texCoords[0]) && onlyOne)
-		return true;
-	if (MoveMem((void**)&geo->texCoords[1]) && onlyOne)
-		return true;
-
-	// verts and normals of morph target are allocated together
-	int vertDiff;
-	if (geo->morphTarget->normals)
-		vertDiff = geo->morphTarget->normals - geo->morphTarget->verts;
-	if (MoveMem((void**)&geo->morphTarget->verts)) {
-		if (geo->morphTarget->normals)
-			geo->morphTarget->normals = geo->morphTarget->verts + vertDiff;
-		if (onlyOne)
-			return true;
-	}
-
-	RpMeshHeader* oldmesh = geo->mesh;
-	if (MoveMem((void**)&geo->mesh)) {
-		// index pointers are allocated together with meshes,
-		// have to relocate those too
-		RpMesh* mesh = (RpMesh*)(geo->mesh + 1);
-		uintptr reloc = (uintptr)geo->mesh - (uintptr)oldmesh;
-		for (int i = 0; i < geo->mesh->numMeshes; i++)
-			mesh[i].indices = (RxVertexIndex*)((uintptr)mesh[i].indices + reloc);
-		if (onlyOne)
-			return true;
-	}
-#else
-	// we could do something in librw here
-#endif
-	return false;
-}
-
-bool
-MoveColModelMemory(CColModel& colModel, bool onlyOne)
-{
-#if GTA_VERSION >= GTA3_PS2_160
-	// hm...should probably only do this if ownsCollisionVolumes
-	// but it doesn't exist on PS2...
-	if (!colModel.ownsCollisionVolumes)
-		return false;
-#endif
-
-	if (MoveMem((void**)&colModel.spheres) && onlyOne)
-		return true;
-	if (MoveMem((void**)&colModel.lines) && onlyOne)
-		return true;
-	if (MoveMem((void**)&colModel.boxes) && onlyOne)
-		return true;
-	if (MoveMem((void**)&colModel.vertices) && onlyOne)
-		return true;
-	if (MoveMem((void**)&colModel.triangles) && onlyOne)
-		return true;
-	if (MoveMem((void**)&colModel.trianglePlanes) && onlyOne)
-		return true;
-	return false;
-}
-
-RpAtomic*
-MoveAtomicMemoryCB(RpAtomic* atomic, void* pData)
+RpAtomic* MoveAtomicMemoryCB(RpAtomic* atomic, void* pData)
 {
 	bool* pRet = (bool*)pData;
-	if (pRet == nil)
-		MoveAtomicMemory(atomic, false);
-	else if (MoveAtomicMemory(atomic, true)) {
-		*pRet = true;
-		return nil;
-	}
+	if (pRet == nil) MoveAtomicMemory(atomic, false);
+	else if (MoveAtomicMemory(atomic, true)) { *pRet = true; return nil; }
 	return atomic;
 }
 
-bool
-TidyUpModelInfo(CBaseModelInfo* modelInfo, bool onlyone)
-{
-	if (modelInfo->GetColModel() && modelInfo->DoesOwnColModel())
-		if (MoveColModelMemory(*modelInfo->GetColModel(), onlyone))
-			return true;
-
-	RwObject* rwobj = modelInfo->GetRwObject();
-	if(rwobj){
-		if (RwObjectGetType(rwobj) == rpATOMIC)
-			if (MoveAtomicMemory((RpAtomic*)rwobj, onlyone))
-				return true;
-		if (RwObjectGetType(rwobj) == rpCLUMP) {
-			bool ret = false;
-			if (onlyone)
-				RpClumpForAllAtomics((RpClump*)rwobj, MoveAtomicMemoryCB, &ret);
-			else
-				RpClumpForAllAtomics((RpClump*)rwobj, MoveAtomicMemoryCB, nil);
-			if (ret)
-				return true;
-		}
-	}
-
-	if (modelInfo->GetModelType() == MITYPE_PED && ((CPedModelInfo*)modelInfo)->m_hitColModel)
-		if (MoveColModelMemory(*((CPedModelInfo*)modelInfo)->m_hitColModel, onlyone))
-			return true;
-
-	return false;
-}
+bool TidyUpModelInfo(CBaseModelInfo* modelInfo, bool onlyone) { return false; }
 #endif
 
+void CGame::DrasticTidyUpMemory(bool flushDraw) {}
+void CGame::TidyUpMemory(bool moveTextures, bool flushDraw) {}
+void CGame::ProcessTidyUpMemory(void) {}
 
-void CGame::DrasticTidyUpMemory(bool flushDraw)
-{
-#ifdef USE_CUSTOM_ALLOCATOR
-	bool removedCol = false;
-
-	TidyUpMemory(true, flushDraw);
-
-	if (gMainHeap.GetLargestFreeBlock() < 200000 && !playingIntro) {
-		CStreaming::RemoveIslandsNotUsed(LEVEL_INDUSTRIAL);
-		CStreaming::RemoveIslandsNotUsed(LEVEL_COMMERCIAL);
-		CStreaming::RemoveIslandsNotUsed(LEVEL_SUBURBAN);
-		TidyUpMemory(true, flushDraw);
-	}
-
-	if (gMainHeap.GetLargestFreeBlock() < 200000 && !playingIntro) {
-		CModelInfo::RemoveColModelsFromOtherLevels(LEVEL_GENERIC);
-		TidyUpMemory(true, flushDraw);
-		removedCol = true;
-	}
-
-	if (gMainHeap.GetLargestFreeBlock() < 200000 && !playingIntro) {
-		CStreaming::RemoveBigBuildings(LEVEL_INDUSTRIAL);
-		CStreaming::RemoveBigBuildings(LEVEL_COMMERCIAL);
-		CStreaming::RemoveBigBuildings(LEVEL_SUBURBAN);
-		TidyUpMemory(true, flushDraw);
-	}
-
-	if (removedCol) {
-		// different on PS2
-		CFileLoader::LoadCollisionFromDatFile(CCollision::ms_collisionInMemory);
-	}
-
-	if (!playingIntro)
-		CStreaming::RequestBigBuildings(currLevel);
-
-	CStreaming::LoadAllRequestedModels(true);
-#endif
-}
-
-void CGame::TidyUpMemory(bool moveTextures, bool flushDraw)
-{
-#ifdef USE_CUSTOM_ALLOCATOR
-	printf("Largest free block before tidy %d\n", gMainHeap.GetLargestFreeBlock());
-
-	if (moveTextures) {
-		if (flushDraw) {
-#ifdef GTA_PS2
-			for (int i = 0; i < sweMaxFlips + 1; i++) {
-#else
-			for (int i = 0; i < 5; i++) {	// probably more than needed
-#endif
-				RwCameraBeginUpdate(Scene.camera);
-				RwCameraEndUpdate(Scene.camera);
-				RwCameraShowRaster(Scene.camera, nil, 0);
-			}
-			}
-		int fontSlot = CTxdStore::FindTxdSlot("fonts");
-
-		for (int i = 0; i < TXDSTORESIZE; i++) {
-			if (i == fontSlot ||
-				CTxdStore::GetSlot(i) == nil)
-				continue;
-			RwTexDictionary* txd = CTxdStore::GetSlot(i)->texDict;
-			if (txd)
-				RwTexDictionaryForAllTextures(txd, MoveTextureMemoryCB, nil);
-		}
-		}
-
-	// animations
-	for (int i = 0; i < NUMANIMATIONS; i++) {
-		CAnimBlendHierarchy* anim = CAnimManager::GetAnimation(i);
-		if (anim == nil)
-			continue;	// cannot happen
-		anim->MoveMemory();
-	}
-
-	// model info
-	for (int i = 0; i < MODELINFOSIZE; i++) {
-		CBaseModelInfo* mi = CModelInfo::GetModelInfo(i);
-		if (mi == nil)
-			continue;
-		TidyUpModelInfo(mi, false);
-	}
-
-	printf("Largest free block after tidy %d\n", gMainHeap.GetLargestFreeBlock());
-#endif
-	}
-
-void CGame::ProcessTidyUpMemory(void)
-{
-#ifdef USE_CUSTOM_ALLOCATOR
-	static int32 modelIndex = 0;
-	static int32 animIndex = 0;
-	static int32 txdIndex = 0;
-	bool txdReturn = false;
-	RwTexDictionary* txd = nil;
-	gNumMemMoved = 0;
-
-	// model infos
-	for (int numCleanedUp = 0; numCleanedUp < 10; numCleanedUp++) {
-		CBaseModelInfo* mi;
-		do {
-			mi = CModelInfo::GetModelInfo(modelIndex);
-			modelIndex++;
-			if (modelIndex >= MODELINFOSIZE)
-				modelIndex = 0;
-		} while (mi == nil);
-
-		if (TidyUpModelInfo(mi, true))
-			return;
-	}
-
-	// tex dicts
-	for (int numCleanedUp = 0; numCleanedUp < 3; numCleanedUp++) {
-		if (gNumMemMoved > 80)
-			break;
-
-		do {
-#ifdef FIX_BUGS
-			txd = nil;
-#endif
-			if (CTxdStore::GetSlot(txdIndex))
-				txd = CTxdStore::GetSlot(txdIndex)->texDict;
-			txdIndex++;
-			if (txdIndex >= TXDSTORESIZE)
-				txdIndex = 0;
-		} while (txd == nil);
-
-		RwTexDictionaryForAllTextures(txd, MoveTextureMemoryCB, &txdReturn);
-		if (txdReturn)
-			return;
-		}
-
-	// animations
-	CAnimBlendHierarchy* anim;
-	do {
-		anim = CAnimManager::GetAnimation(animIndex);
-		animIndex++;
-		if (animIndex >= NUMANIMATIONS)
-			animIndex = 0;
-	} while (anim == nil);	// always != nil
-	anim->MoveMemory(true);
-#endif
-}
-
-void
-CGame::InitAfterFocusLoss()
+void CGame::InitAfterFocusLoss()
 {
 	FrontEndMenuManager.m_nPrefsAudio3DProviderIndex = FrontEndMenuManager.m_lastWorking3DAudioProvider;
 	DMAudio.SetCurrent3DProvider(FrontEndMenuManager.m_lastWorking3DAudioProvider);
@@ -1339,16 +1005,12 @@ CGame::InitAfterFocusLoss()
 		FrontEndMenuManager.m_bStartUpFrontEndRequested = true;
 }
 
-bool
-CGame::CanSeeWaterFromCurrArea(void)
+bool CGame::CanSeeWaterFromCurrArea(void)
 {
-	return currArea == AREA_MAIN_MAP || currArea == AREA_MANSION
-		|| currArea == AREA_HOTEL;
+	return currArea == AREA_MAIN_MAP || currArea == AREA_MANSION || currArea == AREA_HOTEL;
 }
 
-bool
-CGame::CanSeeOutSideFromCurrArea(void)
+bool CGame::CanSeeOutSideFromCurrArea(void)
 {
-	return currArea == AREA_MAIN_MAP || currArea == AREA_MALL ||
-		currArea == AREA_MANSION || currArea == AREA_HOTEL;
+	return currArea == AREA_MAIN_MAP || currArea == AREA_MALL || currArea == AREA_MANSION || currArea == AREA_HOTEL;
 }
