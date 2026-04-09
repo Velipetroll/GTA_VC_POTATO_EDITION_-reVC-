@@ -1,4 +1,4 @@
-#define WITHD3D
+﻿#define WITHD3D
 #include "common.h"
 
 #include "main.h"
@@ -92,19 +92,19 @@ CRenderer::PreRender(void)
 	int i;
 	CLink<CVisibilityPlugins::AlphaObjectInfo> *node;
 
-	for(i = 0; i < ms_nNoOfVisibleEntities; i++)
+	for (i = 0; i < ms_nNoOfVisibleEntities; i++)
 		ms_aVisibleEntityPtrs[i]->PreRender();
 
 #ifdef NEW_RENDERER
-	if(gbNewRenderer){
-		for(i = 0; i < ms_nNoOfVisibleVehicles; i++)
+	if (gbNewRenderer) {
+		for (i = 0; i < ms_nNoOfVisibleVehicles; i++)
 			ms_aVisibleVehiclePtrs[i]->PreRender();
 		// How is this done with cWorldStream?
-		for(i = 0; i < ms_nNoOfVisibleBuildings; i++)
+		for (i = 0; i < ms_nNoOfVisibleBuildings; i++)
 			ms_aVisibleBuildingPtrs[i]->PreRender();
-		for(node = CVisibilityPlugins::m_alphaBuildingList.head.next;
-		    node != &CVisibilityPlugins::m_alphaBuildingList.tail;
-		    node = node->next)
+		for (node = CVisibilityPlugins::m_alphaBuildingList.head.next;
+			node != &CVisibilityPlugins::m_alphaBuildingList.tail;
+			node = node->next)
 			((CEntity*)node->item.entity)->PreRender();
 	}
 #endif
@@ -113,12 +113,12 @@ CRenderer::PreRender(void)
 #ifdef SQUEEZE_PERFORMANCE
 		if (ms_aInVisibleEntityPtrs[i]->IsVehicle() && ((CVehicle*)ms_aInVisibleEntityPtrs[i])->IsHeli())
 #endif
-		ms_aInVisibleEntityPtrs[i]->PreRender();
+			ms_aInVisibleEntityPtrs[i]->PreRender();
 	}
 
-	for(node = CVisibilityPlugins::m_alphaEntityList.head.next;
-	    node != &CVisibilityPlugins::m_alphaEntityList.tail;
-	    node = node->next)
+	for (node = CVisibilityPlugins::m_alphaEntityList.head.next;
+		node != &CVisibilityPlugins::m_alphaEntityList.tail;
+		node = node->next)
 		((CEntity*)node->item.entity)->PreRender();
 
 	CHeli::SpecialHeliPreRender();
@@ -129,11 +129,11 @@ void
 CRenderer::RenderOneRoad(CEntity *e)
 {
 #ifndef FINAL
-	if(gbDontRenderBuildings)
+	if (gbDontRenderBuildings)
 		return;
 #endif
 #ifndef MASTER
-	if(gbShowCollisionPolys || gbShowCollisionPolysReflections || gbShowCollisionPolysNoShadows)
+	if (gbShowCollisionPolys || gbShowCollisionPolysReflections || gbShowCollisionPolysNoShadows)
 		CCollision::DrawColModel_Coloured(e->GetMatrix(), *CModelInfo::GetColModel(e->GetModelIndex()), e->GetModelIndex());
 	else
 #endif
@@ -155,82 +155,86 @@ CRenderer::RenderOneNonRoad(CEntity *e)
 	bool resetLights;
 
 #ifndef MASTER
-	if(gbShowCollisionPolys || gbShowCollisionPolysReflections || gbShowCollisionPolysNoShadows){
-		if(!e->IsVehicle()){
+	if (gbShowCollisionPolys || gbShowCollisionPolysReflections || gbShowCollisionPolysNoShadows) {
+		if (!e->IsVehicle()) {
 			CCollision::DrawColModel_Coloured(e->GetMatrix(), *CModelInfo::GetColModel(e->GetModelIndex()), e->GetModelIndex());
 			return;
 		}
-	}else
+	}
+	else
 #endif
 #ifndef FINAL
-	if(e->IsBuilding()){
-		if(e->bIsBIGBuilding){
-			if(gbDontRenderBigBuildings)
-				return;
-		}else{
-			if(gbDontRenderBuildings)
-				return;
+		if (e->IsBuilding()) {
+			if (e->bIsBIGBuilding) {
+				if (gbDontRenderBigBuildings)
+					return;
+			}
+			else {
+				if (gbDontRenderBuildings)
+					return;
+			}
 		}
-	}else
+		else
 #endif
-	if(e->IsPed()){
+			if (e->IsPed()) {
 #ifndef FINAL
-		if(gbDontRenderPeds)
-			return;
+				if (gbDontRenderPeds)
+					return;
 #endif
-		ped = (CPed*)e;
-		if(ped->m_nPedState == PED_DRIVING)
-			return;
-	}
+				ped = (CPed*)e;
+				if (ped->m_nPedState == PED_DRIVING)
+					return;
+			}
 #ifndef FINAL
-	else if(e->IsObject() || e->IsDummy()){
-		if(gbDontRenderObjects)
-			return;
-	}else if(e->IsVehicle()){
-		// re3 addition
-		if(gbDontRenderVehicles)
-			return;
-	}
+			else if (e->IsObject() || e->IsDummy()) {
+				if (gbDontRenderObjects)
+					return;
+			}
+			else if (e->IsVehicle()) {
+				// re3 addition
+				if (gbDontRenderVehicles)
+					return;
+			}
 #endif
 
-	PUSH_RENDERGROUP(CModelInfo::GetModelInfo(e->GetModelIndex())->GetModelName());
+			PUSH_RENDERGROUP(CModelInfo::GetModelInfo(e->GetModelIndex())->GetModelName());
 
-	resetLights = e->SetupLighting();
+			resetLights = e->SetupLighting();
 
-	if(e->IsVehicle()){
-		// unfortunately can't use GetClump here
-		CVisibilityPlugins::SetupVehicleVariables((RpClump*)e->m_rwObject);
-		CVisibilityPlugins::InitAlphaAtomicList();
-	}
+			if (e->IsVehicle()) {
+				// unfortunately can't use GetClump here
+				CVisibilityPlugins::SetupVehicleVariables((RpClump*)e->m_rwObject);
+				CVisibilityPlugins::InitAlphaAtomicList();
+			}
 
-	// Render Peds in vehicle before vehicle itself
-	if(e->IsVehicle()){
-		veh = (CVehicle*)e;
-		if(veh->pDriver && veh->pDriver->m_nPedState == PED_DRIVING)
-			veh->pDriver->Render();
-		for(i = 0; i < 8; i++)
-			if(veh->pPassengers[i] && veh->pPassengers[i]->m_nPedState == PED_DRIVING)
-				veh->pPassengers[i]->Render();
-		SetCullMode(rwCULLMODECULLNONE);
-	}
-	e->Render();
+			// Render Peds in vehicle before vehicle itself
+			if (e->IsVehicle()) {
+				veh = (CVehicle*)e;
+				if (veh->pDriver && veh->pDriver->m_nPedState == PED_DRIVING)
+					veh->pDriver->Render();
+				for (i = 0; i < 8; i++)
+					if (veh->pPassengers[i] && veh->pPassengers[i]->m_nPedState == PED_DRIVING)
+						veh->pPassengers[i]->Render();
+				SetCullMode(rwCULLMODECULLNONE);
+			}
+			e->Render();
 
-	if(e->IsVehicle()){
-		e->bImBeingRendered = true;
-		CVisibilityPlugins::RenderAlphaAtomics();
-		e->bImBeingRendered = false;
-		SetCullMode(rwCULLMODECULLBACK);
-	}
+			if (e->IsVehicle()) {
+				e->bImBeingRendered = true;
+				CVisibilityPlugins::RenderAlphaAtomics();
+				e->bImBeingRendered = false;
+				SetCullMode(rwCULLMODECULLBACK);
+			}
 
-	e->RemoveLighting(resetLights);
+			e->RemoveLighting(resetLights);
 
-	POP_RENDERGROUP();
+			POP_RENDERGROUP();
 }
 
 void
 CRenderer::RenderFirstPersonVehicle(void)
 {
-	if(m_pFirstPersonVehicle == nil)
+	if (m_pFirstPersonVehicle == nil)
 		return;
 	RwRenderStateSet(rwRENDERSTATEFOGENABLE, (void*)TRUE);
 	RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, (void*)TRUE);
@@ -257,9 +261,9 @@ CRenderer::RenderRoads(void)
 	DeActivateDirectional();
 	SetAmbientColours();
 
-	for(i = 0; i < ms_nNoOfVisibleEntities; i++){
+	for (i = 0; i < ms_nNoOfVisibleEntities; i++) {
 		e = ms_aVisibleEntityPtrs[i];
-		if(IsRoad(e))
+		if (IsRoad(e))
 			RenderOneRoad(e);
 	}
 	POP_RENDERGROUP();
@@ -267,15 +271,16 @@ CRenderer::RenderRoads(void)
 
 inline bool PutIntoSortedVehicleList(CVehicle *veh)
 {
-	if(veh->IsBoat()){
+	if (veh->IsBoat()) {
 		int mode = TheCamera.Cams[TheCamera.ActiveCam].Mode;
-		if(mode == CCam::MODE_WHEELCAM ||
-		   mode == CCam::MODE_1STPERSON && TheCamera.GetLookDirection() != LOOKING_FORWARD && TheCamera.GetLookDirection() != LOOKING_BEHIND ||
-		   CVisibilityPlugins::GetClumpAlpha(veh->GetClump()) != 255)
+		if (mode == CCam::MODE_WHEELCAM ||
+			mode == CCam::MODE_1STPERSON && TheCamera.GetLookDirection() != LOOKING_FORWARD && TheCamera.GetLookDirection() != LOOKING_BEHIND ||
+			CVisibilityPlugins::GetClumpAlpha(veh->GetClump()) != 255)
 			return false;
 		return true;
-	}else
-		return veh->bTouchingWater;		
+	}
+	else
+		return veh->bTouchingWater;
 }
 
 void
@@ -291,30 +296,32 @@ CRenderer::RenderEverythingBarRoads(void)
 	SetCullMode(rwCULLMODECULLBACK);
 	gSortedVehiclesAndPeds.Clear();
 
-	for(i = 0; i < ms_nNoOfVisibleEntities; i++){
+	for (i = 0; i < ms_nNoOfVisibleEntities; i++) {
 		e = ms_aVisibleEntityPtrs[i];
 
-		if(IsRoad(e))
+		if (IsRoad(e))
 			continue;
 
 #ifdef EXTENDED_PIPELINES
-		if(CustomPipes::bRenderingEnvMap && (e->IsPed() || e->IsVehicle()))
+		if (CustomPipes::bRenderingEnvMap && (e->IsPed() || e->IsVehicle()))
 			continue;
 #endif
 
-		if(e->IsVehicle() ||
-		   e->IsPed() && CVisibilityPlugins::GetClumpAlpha((RpClump*)e->m_rwObject) != 255){
-			if(e->IsVehicle() && PutIntoSortedVehicleList((CVehicle*)e)){
+		if (e->IsVehicle() ||
+			e->IsPed() && CVisibilityPlugins::GetClumpAlpha((RpClump*)e->m_rwObject) != 255) {
+			if (e->IsVehicle() && PutIntoSortedVehicleList((CVehicle*)e)) {
 				ei.ent = e;
 				ei.sort = (ms_vecCameraPosition - e->GetPosition()).MagnitudeSqr();
 				gSortedVehiclesAndPeds.InsertSorted(ei);
-			}else{
-				if(!CVisibilityPlugins::InsertEntityIntoSortedList(e, (ms_vecCameraPosition - e->GetPosition()).Magnitude())){
+			}
+			else {
+				if (!CVisibilityPlugins::InsertEntityIntoSortedList(e, (ms_vecCameraPosition - e->GetPosition()).Magnitude())) {
 					printf("Ran out of space in alpha entity list");
 					RenderOneNonRoad(e);
 				}
 			}
-		}else
+		}
+		else
 			RenderOneNonRoad(e);
 	}
 	POP_RENDERGROUP();
@@ -334,12 +341,12 @@ CRenderer::RenderBoats(void)
 	int i;
 	CEntity *e;
 	EntityInfo ei;
-	if(gbNewRenderer){
+	if (gbNewRenderer) {
 		gSortedVehiclesAndPeds.Clear();
 		// not the real thing
-		for(i = 0; i < ms_nNoOfVisibleVehicles; i++){
+		for (i = 0; i < ms_nNoOfVisibleVehicles; i++) {
 			e = ms_aVisibleVehiclePtrs[i];
-			if(e->IsVehicle() && PutIntoSortedVehicleList((CVehicle*)e)){
+			if (e->IsVehicle() && PutIntoSortedVehicleList((CVehicle*)e)) {
 				ei.ent = e;
 				ei.sort = (ms_vecCameraPosition - e->GetPosition()).MagnitudeSqr();
 				gSortedVehiclesAndPeds.InsertSorted(ei);
@@ -348,9 +355,9 @@ CRenderer::RenderBoats(void)
 	}
 #endif
 
-	for(node = gSortedVehiclesAndPeds.tail.prev;
-	    node != &gSortedVehiclesAndPeds.head;
-	    node = node->prev){
+	for (node = gSortedVehiclesAndPeds.tail.prev;
+		node != &gSortedVehiclesAndPeds.head;
+		node = node->prev) {
 		CVehicle *v = (CVehicle*)node->item.ent;
 		RenderOneNonRoad(v);
 	}
@@ -373,12 +380,12 @@ enum {
 static void
 SetStencilState(int state)
 {
-	switch(state){
-	// disable stencil
+	switch (state) {
+		// disable stencil
 	case 0:
 		rw::SetRenderState(rw::STENCILENABLE, FALSE);
 		break;
-	// test against stencil
+		// test against stencil
 	case 1:
 		rw::SetRenderState(rw::STENCILENABLE, TRUE);
 		rw::SetRenderState(rw::STENCILFUNCTION, rw::STENCILNOTEQUAL);
@@ -388,7 +395,7 @@ SetStencilState(int state)
 		rw::SetRenderState(rw::STENCILFUNCTIONMASK, 0xFF);
 		rw::SetRenderState(rw::STENCILFUNCTIONREF, 0xFF);
 		break;
-	// write to stencil
+		// write to stencil
 	case 2:
 		rw::SetRenderState(rw::STENCILENABLE, TRUE);
 		rw::SetRenderState(rw::STENCILFUNCTION, rw::STENCILALWAYS);
@@ -401,7 +408,7 @@ SetStencilState(int state)
 void
 CRenderer::RenderOneBuilding(CEntity *ent, float camdist)
 {
-	if(ent->m_rwObject == nil)
+	if (ent->m_rwObject == nil)
 		return;
 
 	ent->bImBeingRendered = true;	// TODO: this seems wrong, but do we even need it?
@@ -411,32 +418,33 @@ CRenderer::RenderOneBuilding(CEntity *ent, float camdist)
 	CSimpleModelInfo *mi = (CSimpleModelInfo*)CModelInfo::GetModelInfo(ent->GetModelIndex());
 
 	int pass = PASS_BLEND;
-	if(mi->m_additive)	// very questionable
+	if (mi->m_additive)	// very questionable
 		pass = PASS_ADD;
-	if(mi->m_noZwrite)
+	if (mi->m_noZwrite)
 		pass = PASS_NOZ;
 
-	if(ent->bDistanceFade){
+	if (ent->bDistanceFade) {
 		RpAtomic *lodatm;
 		float fadefactor;
 		uint32 alpha;
 
 		lodatm = mi->GetAtomicFromDistance(camdist - FADE_DISTANCE);
-		fadefactor = (mi->GetLargestLodDistance() - (camdist - FADE_DISTANCE))/FADE_DISTANCE;
-		if(fadefactor > 1.0f)
+		fadefactor = (mi->GetLargestLodDistance() - (camdist - FADE_DISTANCE)) / FADE_DISTANCE;
+		if (fadefactor > 1.0f)
 			fadefactor = 1.0f;
 		alpha = mi->m_alpha * fadefactor;
 
-		if(alpha == 255)
+		if (alpha == 255)
 			WorldRender::AtomicFirstPass(atomic, pass);
-		else{
+		else {
 			// not quite sure what this is about, do we have to do that?
 			RpGeometry *geo = RpAtomicGetGeometry(lodatm);
-			if(geo != RpAtomicGetGeometry(atomic))
+			if (geo != RpAtomicGetGeometry(atomic))
 				RpAtomicSetGeometry(atomic, geo, rpATOMICSAMEBOUNDINGSPHERE);
 			WorldRender::AtomicFullyTransparent(atomic, pass, alpha);
 		}
-	}else
+	}
+	else
 		WorldRender::AtomicFirstPass(atomic, pass);
 
 	ent->bImBeingRendered = false;	// TODO: this seems wrong, but do we even need it?
@@ -455,21 +463,21 @@ CRenderer::RenderWorld(int pass)
 	SetAmbientColours();
 
 	// Temporary...have to figure out sorting better
-	switch(pass){
+	switch (pass) {
 	case 0:
 		// Roads
 		PUSH_RENDERGROUP("CRenderer::RenderWorld - Roads");
 		RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)FALSE);
-		for(i = 0; i < ms_nNoOfVisibleBuildings; i++){
+		for (i = 0; i < ms_nNoOfVisibleBuildings; i++) {
 			e = ms_aVisibleBuildingPtrs[i];
-			if(e->bIsBIGBuilding || IsRoad(e))
+			if (e->bIsBIGBuilding || IsRoad(e))
 				RenderOneBuilding(e);
 		}
-		for(node = CVisibilityPlugins::m_alphaBuildingList.tail.prev;
-		    node != &CVisibilityPlugins::m_alphaBuildingList.head;
-		    node = node->prev){
+		for (node = CVisibilityPlugins::m_alphaBuildingList.tail.prev;
+			node != &CVisibilityPlugins::m_alphaBuildingList.head;
+			node = node->prev) {
 			e = node->item.entity;
-			if(e->bIsBIGBuilding || IsRoad(e))
+			if (e->bIsBIGBuilding || IsRoad(e))
 				RenderOneBuilding(e, node->item.sort);
 		}
 		POP_RENDERGROUP();
@@ -478,16 +486,16 @@ CRenderer::RenderWorld(int pass)
 		// Opaque
 		PUSH_RENDERGROUP("CRenderer::RenderWorld - Opaque");
 		RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)FALSE);
-		for(i = 0; i < ms_nNoOfVisibleBuildings; i++){
+		for (i = 0; i < ms_nNoOfVisibleBuildings; i++) {
 			e = ms_aVisibleBuildingPtrs[i];
-			if(!(e->bIsBIGBuilding || IsRoad(e)))
+			if (!(e->bIsBIGBuilding || IsRoad(e)))
 				RenderOneBuilding(e);
 		}
-		for(node = CVisibilityPlugins::m_alphaBuildingList.tail.prev;
-		    node != &CVisibilityPlugins::m_alphaBuildingList.head;
-		    node = node->prev){
+		for (node = CVisibilityPlugins::m_alphaBuildingList.tail.prev;
+			node != &CVisibilityPlugins::m_alphaBuildingList.head;
+			node = node->prev) {
 			e = node->item.entity;
-			if(!(e->bIsBIGBuilding || IsRoad(e)))
+			if (!(e->bIsBIGBuilding || IsRoad(e)))
 				RenderOneBuilding(e, node->item.sort);
 		}
 		// Now we have iterated through all visible buildings (unsorted and sorted)
@@ -519,9 +527,9 @@ CRenderer::RenderPeds(void)
 	CEntity *e;
 
 	PUSH_RENDERGROUP("CRenderer::RenderPeds");
-	for(i = 0; i < ms_nNoOfVisibleVehicles; i++){
+	for (i = 0; i < ms_nNoOfVisibleVehicles; i++) {
 		e = ms_aVisibleVehiclePtrs[i];
-		if(e->IsPed())
+		if (e->IsPed())
 			RenderOneNonRoad(e);
 	}
 	POP_RENDERGROUP();
@@ -537,20 +545,20 @@ CRenderer::RenderVehicles(void)
 
 	PUSH_RENDERGROUP("CRenderer::RenderVehicles");
 	// not the real thing
-	for(i = 0; i < ms_nNoOfVisibleVehicles; i++){
+	for (i = 0; i < ms_nNoOfVisibleVehicles; i++) {
 		e = ms_aVisibleVehiclePtrs[i];
-		if(!e->IsVehicle())
+		if (!e->IsVehicle())
 			continue;
-		if(PutIntoSortedVehicleList((CVehicle*)e))
+		if (PutIntoSortedVehicleList((CVehicle*)e))
 			continue;	// boats handled elsewhere
 		ei.ent = e;
 		ei.sort = (ms_vecCameraPosition - e->GetPosition()).MagnitudeSqr();
 		gSortedVehiclesAndPeds.InsertSorted(ei);
 	}
 
-	for(node = gSortedVehiclesAndPeds.tail.prev;
-	    node != &gSortedVehiclesAndPeds.head;
-	    node = node->prev)
+	for (node = gSortedVehiclesAndPeds.tail.prev;
+		node != &gSortedVehiclesAndPeds.head;
+		node = node->prev)
 		RenderOneNonRoad(node->item.ent);
 	POP_RENDERGROUP();
 }
@@ -570,9 +578,9 @@ CRenderer::RenderTransparentWater(void)
 	RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, (void*)FALSE);
 	SetStencilState(2);
 
-	for(i = 0; i < ms_nNoOfVisibleVehicles; i++){
+	for (i = 0; i < ms_nNoOfVisibleVehicles; i++) {
 		e = ms_aVisibleVehiclePtrs[i];
-		if(e->IsVehicle() && ((CVehicle*)e)->IsBoat())
+		if (e->IsVehicle() && ((CVehicle*)e)->IsBoat())
 			((CBoat*)e)->RenderWaterOutPolys();
 	}
 
@@ -633,10 +641,10 @@ CRenderer::RenderCollisionLines(void)
 
 	// game doesn't draw fading in entities
 	// this should probably be fixed
-	for(i = 0; i < ms_nNoOfVisibleEntities; i++){
+	for (i = 0; i < ms_nNoOfVisibleEntities; i++) {
 		CEntity *e = ms_aVisibleEntityPtrs[i];
-		if(Abs(e->GetPosition().x - ms_vecCameraPosition.x) < 100.0f &&
-		   Abs(e->GetPosition().y - ms_vecCameraPosition.y) < 100.0f)
+		if (Abs(e->GetPosition().x - ms_vecCameraPosition.x) < 100.0f &&
+			Abs(e->GetPosition().y - ms_vecCameraPosition.y) < 100.0f)
 			CCollision::DrawColModel(e->GetMatrix(), *e->GetColModel());
 	}
 }
@@ -665,56 +673,77 @@ CRenderer::SetupEntityVisibility(CEntity *ent)
 	int32 other;
 	float dist;
 
+	// --- OPTIMIZACIÓN EXTREMA: Corte exacto por Pantalla de Carga (Normales) ---
+	if (ent->IsBuilding() || ent->IsDummy()) {
+		float playerX = TheCamera.GetPosition().x;
+		float entX = ent->GetPosition().x;
+
+		// LADO ESTE: Si el jugador NO ha cruzado la pantalla de carga hacia la ciudad
+		if (playerX > -250.0f) {
+			if (entX < -350.0f) {
+				return VIS_INVISIBLE;
+			}
+		}
+		// LADO OESTE: Si el jugador YA CRUZÓ la pantalla de carga (Ciudad/Little Havana)
+		else {
+			if (entX > 50.0f) {
+				return VIS_INVISIBLE;
+			}
+		}
+	}
+	// --- FIN OPTIMIZACIÓN ---
+
 	bool request = true;
-	if(mi->GetModelType() == MITYPE_TIME){
- 		ti = (CTimeModelInfo*)mi;
+	if (mi->GetModelType() == MITYPE_TIME) {
+		ti = (CTimeModelInfo*)mi;
 		other = ti->GetOtherTimeModel();
-		if(CClock::GetIsTimeInRange(ti->GetTimeOn(), ti->GetTimeOff())){
-			// don't fade in, or between time objects
-			if(CANTIMECULL)
+		if (CClock::GetIsTimeInRange(ti->GetTimeOn(), ti->GetTimeOff())) {
+			if (CANTIMECULL)
 				ti->m_alpha = 255;
-		}else{
-			// Hide if possible
-			if(CANTIMECULL){
+		}
+		else {
+			if (CANTIMECULL) {
 				ent->DeleteRwObject();
 				return VIS_INVISIBLE;
 			}
-			// can't cull, so we'll try to draw this one, but don't request
-			// it since what we really want is the other one.
 			request = false;
 		}
-	}else{
-		if(mi->GetModelType() != MITYPE_SIMPLE && mi->GetModelType() != MITYPE_WEAPON){
-			if(FindPlayerVehicle() == ent &&
-			   TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_1STPERSON &&
-			   !(FindPlayerVehicle()->IsBike() && ((CBike*)FindPlayerVehicle())->bWheelieCam)){
-				// Player's vehicle in first person mode
+	}
+	else {
+		if (mi->GetModelType() != MITYPE_SIMPLE && mi->GetModelType() != MITYPE_WEAPON) {
+			if (FindPlayerVehicle() == ent &&
+				TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_1STPERSON &&
+				!(FindPlayerVehicle()->IsBike() && ((CBike*)FindPlayerVehicle())->bWheelieCam)) {
+
 				CVehicle *veh = (CVehicle*)ent;
 				int model = veh->GetModelIndex();
 				int direction = TheCamera.Cams[TheCamera.ActiveCam].DirectionWasLooking;
-				if(direction == LOOKING_FORWARD ||
-				   ent->GetModelIndex() == MI_RHINO ||
-				   ent->GetModelIndex() == MI_COACH ||
-				   TheCamera.m_bInATunnelAndABigVehicle ||
-				   direction == LOOKING_BEHIND && veh->pHandling->Flags & HANDLING_UNKNOWN){
+
+				if (direction == LOOKING_FORWARD ||
+					ent->GetModelIndex() == MI_RHINO ||
+					ent->GetModelIndex() == MI_COACH ||
+					TheCamera.m_bInATunnelAndABigVehicle ||
+					direction == LOOKING_BEHIND && veh->pHandling->Flags & HANDLING_UNKNOWN) {
+
 					ent->bNoBrightHeadLights = true;
-					return VIS_OFFSCREEN;
+					m_pFirstPersonVehicle = veh;
+					return VIS_VISIBLE;
 				}
 
-				if(direction != LOOKING_BEHIND ||
-				   !veh->IsBoat() || model == MI_REEFER || model == MI_TROPIC || model == MI_PREDATOR || model == MI_SKIMMER){
-					m_pFirstPersonVehicle = (CVehicle*)ent;
+				if (direction != LOOKING_BEHIND ||
+					!veh->IsBoat() || model == MI_REEFER || model == MI_TROPIC || model == MI_PREDATOR || model == MI_SKIMMER) {
+
+					m_pFirstPersonVehicle = veh;
 					ent->bNoBrightHeadLights = false;
-					return VIS_OFFSCREEN;
+					return VIS_VISIBLE;
 				}
 			}
 
-			// All sorts of Clumps
-			if(ent->m_rwObject == nil || !ent->bIsVisible)
+			if (ent->m_rwObject == nil || !ent->bIsVisible)
 				return VIS_INVISIBLE;
-			if(!ent->GetIsOnScreen() || ent->IsEntityOccluded())
+			if (!ent->GetIsOnScreen() || ent->IsEntityOccluded())
 				return VIS_OFFSCREEN;
-			if(ent->bDrawLast){
+			if (ent->bDrawLast) {
 				dist = (ent->GetPosition() - ms_vecCameraPosition).Magnitude();
 				CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
 				ent->bDistanceFade = false;
@@ -722,12 +751,12 @@ CRenderer::SetupEntityVisibility(CEntity *ent)
 			}
 			return VIS_VISIBLE;
 		}
-		if(ent->bDontStream){
-			if(ent->m_rwObject == nil || !ent->bIsVisible)
+		if (ent->bDontStream) {
+			if (ent->m_rwObject == nil || !ent->bIsVisible)
 				return VIS_INVISIBLE;
-			if(!ent->GetIsOnScreen() || ent->IsEntityOccluded())
+			if (!ent->GetIsOnScreen() || ent->IsEntityOccluded())
 				return VIS_OFFSCREEN;
-			if(ent->bDrawLast){
+			if (ent->bDrawLast) {
 				dist = (ent->GetPosition() - ms_vecCameraPosition).Magnitude();
 				CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
 				ent->bDistanceFade = false;
@@ -737,55 +766,58 @@ CRenderer::SetupEntityVisibility(CEntity *ent)
 		}
 	}
 
-	// Simple ModelInfo
-
-	if(!IsAreaVisible(ent->m_area))
+	if (!IsAreaVisible(ent->m_area))
 		return VIS_INVISIBLE;
 
 	dist = (ent->GetPosition() - ms_vecCameraPosition).Magnitude();
 
 #ifndef FIX_BUGS
-	// Whatever this is supposed to do, it breaks fading for objects
-	// whose draw dist is > LOD_DISTANCE-FADE_DISTANCE, i.e. 280
-	// because decreasing dist here makes the object visible above LOD_DISTANCE
-	// before fading normally once below LOD_DISTANCE.
-	// aha! this must be a workaround for the fact that we're not taking
-	// the LOD multiplier into account here anywhere
-	if(LOD_DISTANCE < dist && dist < mi->GetLargestLodDistance() + FADE_DISTANCE)
+	if (LOD_DISTANCE < dist && dist < mi->GetLargestLodDistance() + FADE_DISTANCE)
 		dist += mi->GetLargestLodDistance() - LOD_DISTANCE;
 #endif
 
-	if(ent->IsObject() && ent->bRenderDamaged)
+	if (ent->IsObject() && ent->bRenderDamaged)
 		mi->m_isDamaged = true;
 
 	RpAtomic *a = mi->GetAtomicFromDistance(dist);
-	if(a){
+	if (a) {
 		mi->m_isDamaged = false;
-		if(ent->m_rwObject == nil)
+		if (ent->m_rwObject == nil)
 			ent->CreateRwObject();
 		assert(ent->m_rwObject);
 		RpAtomic *rwobj = (RpAtomic*)ent->m_rwObject;
-		// Make sure our atomic uses the right geometry and not
-		// that of an atomic for another draw distance.
-		if(RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
-			RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE); // originally 5 (mistake?)
+
+		if (RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
+			RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE);
 		mi->IncreaseAlpha();
-		if(ent->m_rwObject == nil || !ent->bIsVisible)
+		if (ent->m_rwObject == nil || !ent->bIsVisible)
 			return VIS_INVISIBLE;
 
-		if(!ent->GetIsOnScreen() || ent->IsEntityOccluded()){
+		if (!ent->GetIsOnScreen() || ent->IsEntityOccluded()) {
 			mi->m_alpha = 255;
 			return VIS_OFFSCREEN;
 		}
 
-		if(mi->m_alpha != 255){
+		if (mi->m_alpha != 255) {
 			CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
-			ent->bDistanceFade = true;
+
+			ent->bDistanceFade = false;
+			const char* modelName = CModelInfo::GetModelInfo(ent->GetModelIndex())->GetModelName();
+			if (modelName) {
+				if (strstr(modelName, "tree") || strstr(modelName, "TREE") ||
+					strstr(modelName, "palm") || strstr(modelName, "PALM") ||
+					strstr(modelName, "lamp") || strstr(modelName, "LAMP") ||
+					strstr(modelName, "pole") || strstr(modelName, "POLE") ||
+					strstr(modelName, "light") || strstr(modelName, "LIGHT")) {
+					ent->bDistanceFade = true;
+				}
+			}
+
 			return VIS_INVISIBLE;
 		}
 
-		if(mi->m_drawLast || ent->bDrawLast){
-			if(CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist)){
+		if (mi->m_drawLast || ent->bDrawLast) {
+			if (CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist)) {
 				ent->bDistanceFade = false;
 				return VIS_INVISIBLE;
 			}
@@ -793,44 +825,51 @@ CRenderer::SetupEntityVisibility(CEntity *ent)
 		return VIS_VISIBLE;
 	}
 
-	// Object is not loaded, figure out what to do
-
-	if(mi->m_noFade){
+	if (mi->m_noFade) {
 		mi->m_isDamaged = false;
-		// request model
-		if(dist - STREAM_DISTANCE < mi->GetLargestLodDistance() && request)
+		if (dist - STREAM_DISTANCE < mi->GetLargestLodDistance() && request)
 			return VIS_STREAMME;
 		return VIS_INVISIBLE;
 	}
-
-	// We might be fading
 
 	a = mi->GetAtomicFromDistance(dist - FADE_DISTANCE);
 	mi->m_isDamaged = false;
-	if(a == nil){
-		// request model
-		if(dist - FADE_DISTANCE - STREAM_DISTANCE < mi->GetLargestLodDistance() && request)
+	if (a == nil) {
+		if (dist - FADE_DISTANCE - STREAM_DISTANCE < mi->GetLargestLodDistance() && request)
 			return VIS_STREAMME;
 		return VIS_INVISIBLE;
 	}
 
-	if(ent->m_rwObject == nil)
+	if (ent->m_rwObject == nil)
 		ent->CreateRwObject();
 	assert(ent->m_rwObject);
 	RpAtomic *rwobj = (RpAtomic*)ent->m_rwObject;
-	if(RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
-		RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE); // originally 5 (mistake?)
+	if (RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
+		RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE);
 	mi->IncreaseAlpha();
-	if(ent->m_rwObject == nil || !ent->bIsVisible)
+	if (ent->m_rwObject == nil || !ent->bIsVisible)
 		return VIS_INVISIBLE;
 
-	if(!ent->GetIsOnScreen() || ent->IsEntityOccluded()){
+	if (!ent->GetIsOnScreen() || ent->IsEntityOccluded()) {
 		mi->m_alpha = 255;
 		return VIS_OFFSCREEN;
-	}else{
+	}
+	else {
 		CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
-		ent->bDistanceFade = true;
-		return VIS_OFFSCREEN;	// Why this?
+
+		ent->bDistanceFade = false;
+		const char* modelName = CModelInfo::GetModelInfo(ent->GetModelIndex())->GetModelName();
+		if (modelName) {
+			if (strstr(modelName, "tree") || strstr(modelName, "TREE") ||
+				strstr(modelName, "palm") || strstr(modelName, "PALM") ||
+				strstr(modelName, "lamp") || strstr(modelName, "LAMP") ||
+				strstr(modelName, "pole") || strstr(modelName, "POLE") ||
+				strstr(modelName, "light") || strstr(modelName, "LIGHT")) {
+				ent->bDistanceFade = true;
+			}
+		}
+
+		return VIS_OFFSCREEN;
 	}
 }
 
@@ -841,76 +880,107 @@ CRenderer::SetupBigBuildingVisibility(CEntity *ent)
 	CTimeModelInfo *ti;
 	int32 other;
 
-	if(!IsAreaVisible(ent->m_area))
+	if (!IsAreaVisible(ent->m_area))
 		return VIS_INVISIBLE;
 
+	// --- OPTIMIZACIÓN EXTREMA 1: Corte exacto por Pantalla de Carga (LODs) ---
+	if (ent->IsBuilding() || ent->IsDummy()) {
+		float playerX = TheCamera.GetPosition().x;
+		float entX = ent->GetPosition().x;
+
+		// LADO ESTE: Si el jugador NO ha cruzado la pantalla de carga hacia la ciudad
+		if (playerX > -250.0f) {
+			if (entX < -350.0f) {
+				return VIS_INVISIBLE;
+			}
+		}
+		// LADO OESTE: Si el jugador YA CRUZÓ la pantalla de carga (Ciudad/Little Havana)
+		else {
+			if (entX > 50.0f) {
+				return VIS_INVISIBLE;
+			}
+		}
+	}
+	// --- FIN OPTIMIZACIÓN 1 ---
+
+	float dist = (ms_vecCameraPosition - ent->GetPosition()).Magnitude();
+
+	// --- OPTIMIZACIÓN EXTREMA 2: Límite de Distancia Absoluta para LODs ---
+	// Si el edificio gigante está en nuestra isla, pero está a más de 450 metros,
+	// lo aniquilamos para salvar el Fill-Rate de la tarjeta gráfica.
+	if (dist > 350.0f) {
+		return VIS_INVISIBLE;
+	}
+	// --- FIN OPTIMIZACIÓN 2 ---
+
 	bool request = true;
-	if(mi->GetModelType() == MITYPE_TIME){
+	if (mi->GetModelType() == MITYPE_TIME) {
 		ti = (CTimeModelInfo*)mi;
 		other = ti->GetOtherTimeModel();
-		if(CClock::GetIsTimeInRange(ti->GetTimeOn(), ti->GetTimeOff())){
-			// don't fade in, or between time objects
-			if(CANTIMECULL)
+		if (CClock::GetIsTimeInRange(ti->GetTimeOn(), ti->GetTimeOff())) {
+			if (CANTIMECULL)
 				ti->m_alpha = 255;
-		}else{
-			// Hide if possible
-			if(CANTIMECULL){
+		}
+		else {
+			if (CANTIMECULL) {
 				ent->DeleteRwObject();
 				return VIS_INVISIBLE;
 			}
-			// can't cull, so we'll try to draw this one, but don't request
-			// it since what we really want is the other one.
 			request = false;
 		}
-	}else if(mi->GetModelType() == MITYPE_VEHICLE)
+	}
+	else if (mi->GetModelType() == MITYPE_VEHICLE)
 		return ent->IsVisible() ? VIS_VISIBLE : VIS_INVISIBLE;
 
-	float dist = (ms_vecCameraPosition-ent->GetPosition()).Magnitude();
 	CSimpleModelInfo *nonLOD = mi->GetRelatedModel();
 
-	// Find out whether to draw below near distance.
-	// This is only the case if there is a non-LOD which is either not
-	// loaded or not completely faded in yet.
-	if(dist < mi->GetNearDistance() && dist < LOD_DISTANCE){
-		// No non-LOD or non-LOD is completely visible.
-		if(nonLOD == nil ||
-		   nonLOD->GetRwObject() && nonLOD->m_alpha == 255)
+	if (dist < mi->GetNearDistance() && dist < LOD_DISTANCE) {
+		if (nonLOD == nil ||
+			nonLOD->GetRwObject() && nonLOD->m_alpha == 255)
 			return VIS_INVISIBLE;
 
-		// But if it is a time object, we'd rather draw the wrong
-		// non-LOD than the right LOD.
-		if(nonLOD->GetModelType() == MITYPE_TIME){
+		if (nonLOD->GetModelType() == MITYPE_TIME) {
 			ti = (CTimeModelInfo*)nonLOD;
 			other = ti->GetOtherTimeModel();
-			if(other != -1 && CModelInfo::GetModelInfo(other)->GetRwObject())
+			if (other != -1 && CModelInfo::GetModelInfo(other)->GetRwObject())
 				return VIS_INVISIBLE;
 		}
 	}
 
 	RpAtomic *a = mi->GetFirstAtomicFromDistance(dist);
-	if(a){
-		if(ent->m_rwObject == nil)
+	if (a) {
+		if (ent->m_rwObject == nil)
 			ent->CreateRwObject();
 		assert(ent->m_rwObject);
 		RpAtomic *rwobj = (RpAtomic*)ent->m_rwObject;
 
-		// Make sure our atomic uses the right geometry and not
-		// that of an atomic for another draw distance.
-		if(RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
-			RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE); // originally 5 (mistake?)
+		if (RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
+			RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE);
 		mi->IncreaseAlpha();
-		if(!ent->IsVisible() || !ent->GetIsOnScreenComplex() || ent->IsEntityOccluded()){
+		if (!ent->IsVisible() || !ent->GetIsOnScreenComplex() || ent->IsEntityOccluded()) {
 			mi->m_alpha = 255;
 			return VIS_INVISIBLE;
 		}
 
-		if(mi->m_alpha != 255){
+		if (mi->m_alpha != 255) {
 			CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
-			ent->bDistanceFade = true;
+
+			ent->bDistanceFade = false;
+			const char* modelName = CModelInfo::GetModelInfo(ent->GetModelIndex())->GetModelName();
+			if (modelName) {
+				if (strstr(modelName, "tree") || strstr(modelName, "TREE") ||
+					strstr(modelName, "palm") || strstr(modelName, "PALM") ||
+					strstr(modelName, "lamp") || strstr(modelName, "LAMP") ||
+					strstr(modelName, "pole") || strstr(modelName, "POLE") ||
+					strstr(modelName, "light") || strstr(modelName, "LIGHT")) {
+					ent->bDistanceFade = true;
+				}
+			}
+
 			return VIS_INVISIBLE;
 		}
 
-		if(mi->m_drawLast){
+		if (mi->m_drawLast) {
 			CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
 			ent->bDistanceFade = false;
 			return VIS_INVISIBLE;
@@ -918,59 +988,69 @@ CRenderer::SetupBigBuildingVisibility(CEntity *ent)
 		return VIS_VISIBLE;
 	}
 
-	if(mi->m_noFade){
+	if (mi->m_noFade) {
 		ent->DeleteRwObject();
 		return VIS_INVISIBLE;
 	}
 
-
-	// get faded atomic
 	a = mi->GetFirstAtomicFromDistance(dist - FADE_DISTANCE);
-	if(a == nil){
-		if(ent->bStreamBIGBuilding && dist-STREAM_DISTANCE < mi->GetLodDistance(0) && request){
+	if (a == nil) {
+		if (ent->bStreamBIGBuilding && dist - STREAM_DISTANCE < mi->GetLodDistance(0) && request) {
 			return ent->GetIsOnScreen() ? VIS_STREAMME : VIS_INVISIBLE;
-		}else{
+		}
+		else {
 			ent->DeleteRwObject();
 			return VIS_INVISIBLE;
 		}
 	}
 
-	// Fade...
-	if(ent->m_rwObject == nil)
+	if (ent->m_rwObject == nil)
 		ent->CreateRwObject();
 	assert(ent->m_rwObject);
 	RpAtomic *rwobj = (RpAtomic*)ent->m_rwObject;
-	if(RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
-		RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE); // originally 5 (mistake?)
+	if (RpAtomicGetGeometry(a) != RpAtomicGetGeometry(rwobj))
+		RpAtomicSetGeometry(rwobj, RpAtomicGetGeometry(a), rpATOMICSAMEBOUNDINGSPHERE);
 	mi->IncreaseAlpha();
-	if(!ent->IsVisible() || !ent->GetIsOnScreenComplex() || ent->IsEntityOccluded()){
+
+	if (!ent->IsVisible() || !ent->GetIsOnScreenComplex() || ent->IsEntityOccluded()) {
 		mi->m_alpha = 255;
 		return VIS_INVISIBLE;
 	}
 	CVisibilityPlugins::InsertEntityIntoSortedList(ent, dist);
-	ent->bDistanceFade = true;
+
+	ent->bDistanceFade = false;
+	const char* modelName = CModelInfo::GetModelInfo(ent->GetModelIndex())->GetModelName();
+	if (modelName) {
+		if (strstr(modelName, "tree") || strstr(modelName, "TREE") ||
+			strstr(modelName, "palm") || strstr(modelName, "PALM") ||
+			strstr(modelName, "lamp") || strstr(modelName, "LAMP") ||
+			strstr(modelName, "pole") || strstr(modelName, "POLE") ||
+			strstr(modelName, "light") || strstr(modelName, "LIGHT")) {
+			ent->bDistanceFade = true;
+		}
+	}
+
 	return VIS_INVISIBLE;
 }
-
 void
 CRenderer::ConstructRenderList(void)
 {
 	COcclusion::ProcessBeforeRendering();
 #ifdef NEW_RENDERER
-	if(!gbNewRenderer)
+	if (!gbNewRenderer)
 #endif
-{
-	ms_nNoOfVisibleEntities = 0;
-	ms_nNoOfInVisibleEntities = 0;
-}
+	{
+		ms_nNoOfVisibleEntities = 0;
+		ms_nNoOfInVisibleEntities = 0;
+	}
 	ms_vecCameraPosition = TheCamera.GetPosition();
 
 	// unused
 	pFullBlockedRanges = nil;
 	pEmptyBlockedRanges = aBlockedRanges;
-	for(int i = 0; i < 16; i++){
-		aBlockedRanges[i].prev = &aBlockedRanges[i-1];
-		aBlockedRanges[i].next = &aBlockedRanges[i+1];
+	for (int i = 0; i < 16; i++) {
+		aBlockedRanges[i].prev = &aBlockedRanges[i - 1];
+		aBlockedRanges[i].next = &aBlockedRanges[i + 1];
 	}
 	aBlockedRanges[0].prev = nil;
 	aBlockedRanges[15].next = nil;
@@ -1043,14 +1123,15 @@ CRenderer::ScanWorld(void)
 	prevPos = TheCamera.GetPosition();
 	prevFwd = TheCamera.GetForward();
 
-	if(cammatrix->at.z > 0.0f){
+	if (cammatrix->at.z > 0.0f) {
 		// looking up, bottom corners are further away
-		vectors[CORNER_LOD_LEFT] = vectors[CORNER_FAR_BOTLEFT] * LOD_DISTANCE/f;
-		vectors[CORNER_LOD_RIGHT] = vectors[CORNER_FAR_BOTRIGHT] * LOD_DISTANCE/f;
-	}else{
+		vectors[CORNER_LOD_LEFT] = vectors[CORNER_FAR_BOTLEFT] * LOD_DISTANCE / f;
+		vectors[CORNER_LOD_RIGHT] = vectors[CORNER_FAR_BOTRIGHT] * LOD_DISTANCE / f;
+	}
+	else {
 		// looking down, top corners are further away
-		vectors[CORNER_LOD_LEFT] = vectors[CORNER_FAR_TOPLEFT] * LOD_DISTANCE/f;
-		vectors[CORNER_LOD_RIGHT] = vectors[CORNER_FAR_TOPRIGHT] * LOD_DISTANCE/f;
+		vectors[CORNER_LOD_LEFT] = vectors[CORNER_FAR_TOPLEFT] * LOD_DISTANCE / f;
+		vectors[CORNER_LOD_RIGHT] = vectors[CORNER_FAR_TOPRIGHT] * LOD_DISTANCE / f;
 	}
 	vectors[CORNER_PRIO_LEFT].x = vectors[CORNER_LOD_LEFT].x * 0.2f;
 	vectors[CORNER_PRIO_LEFT].y = vectors[CORNER_LOD_LEFT].y * 0.2f;
@@ -1061,11 +1142,11 @@ CRenderer::ScanWorld(void)
 	RwV3dTransformPoints(vectors, vectors, 9, cammatrix);
 
 	m_loadingPriority = false;
-	if(TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOPDOWN ||
+	if (TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOPDOWN ||
 #ifdef FIX_BUGS
-	   TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_GTACLASSIC ||
+		TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_GTACLASSIC ||
 #endif
-	   TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOP_DOWN_PED){
+		TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOP_DOWN_PED) {
 		CRect rect;
 		int x1, x2, y1, y2;
 		LimitFrustumVector(vectors[CORNER_FAR_TOPLEFT], vectors[CORNER_CAM], -100.0f);
@@ -1077,20 +1158,21 @@ CRenderer::ScanWorld(void)
 		LimitFrustumVector(vectors[CORNER_FAR_BOTLEFT], vectors[CORNER_CAM], -100.0f);
 		rect.ContainPoint(vectors[CORNER_FAR_BOTLEFT]);
 		x1 = CWorld::GetSectorIndexX(rect.left);
-		if(x1 < 0) x1 = 0;
+		if (x1 < 0) x1 = 0;
 		x2 = CWorld::GetSectorIndexX(rect.right);
-		if(x2 >= NUMSECTORS_X-1) x2 = NUMSECTORS_X-1;
+		if (x2 >= NUMSECTORS_X - 1) x2 = NUMSECTORS_X - 1;
 		y1 = CWorld::GetSectorIndexY(rect.top);
-		if(y1 < 0) y1 = 0;
+		if (y1 < 0) y1 = 0;
 		y2 = CWorld::GetSectorIndexY(rect.bottom);
-		if(y2 >= NUMSECTORS_Y-1) y2 = NUMSECTORS_Y-1;
-		for(; x1 <= x2; x1++)
-			for(int y = y1; y <= y2; y++)
+		if (y2 >= NUMSECTORS_Y - 1) y2 = NUMSECTORS_Y - 1;
+		for (; x1 <= x2; x1++)
+			for (int y = y1; y <= y2; y++)
 				ScanSectorList(CWorld::GetSector(x1, y)->m_lists);
-	}else{
+	}
+	else {
 #ifdef GTA_TRAIN
 		CVehicle *train = FindPlayerTrain();
-		if(train && train->GetPosition().z < 0.0f){
+		if (train && train->GetPosition().z < 0.0f) {
 			poly[0].x = CWorld::GetSectorX(vectors[CORNER_CAM].x);
 			poly[0].y = CWorld::GetSectorY(vectors[CORNER_CAM].y);
 			poly[1].x = CWorld::GetSectorX(vectors[CORNER_LOD_LEFT].x);
@@ -1098,10 +1180,11 @@ CRenderer::ScanWorld(void)
 			poly[2].x = CWorld::GetSectorX(vectors[CORNER_LOD_RIGHT].x);
 			poly[2].y = CWorld::GetSectorY(vectors[CORNER_LOD_RIGHT].y);
 			ScanSectorPoly(poly, 3, ScanSectorList_Subway);
-		}else
+		}
+		else
 #endif
 		{
-			if(f > LOD_DISTANCE){
+			if (f > LOD_DISTANCE) {
 				// priority
 				poly[0].x = CWorld::GetSectorX(vectors[CORNER_CAM].x);
 				poly[0].y = CWorld::GetSectorY(vectors[CORNER_CAM].y);
@@ -1119,7 +1202,8 @@ CRenderer::ScanWorld(void)
 				poly[2].x = CWorld::GetSectorX(vectors[CORNER_LOD_RIGHT].x);
 				poly[2].y = CWorld::GetSectorY(vectors[CORNER_LOD_RIGHT].y);
 				ScanSectorPoly(poly, 3, ScanSectorList);
-			}else{
+			}
+			else {
 				poly[0].x = CWorld::GetSectorX(vectors[CORNER_CAM].x);
 				poly[0].y = CWorld::GetSectorY(vectors[CORNER_CAM].y);
 				poly[1].x = CWorld::GetSectorX(vectors[CORNER_FAR_TOPLEFT].x);
@@ -1128,18 +1212,19 @@ CRenderer::ScanWorld(void)
 				poly[2].y = CWorld::GetSectorY(vectors[CORNER_FAR_TOPRIGHT].y);
 				ScanSectorPoly(poly, 3, ScanSectorList);
 			}
-			
+
 #ifdef NO_ISLAND_LOADING
 			if (FrontEndMenuManager.m_PrefsIslandLoading == CMenuManager::ISLAND_LOADING_HIGH) {
 				ScanBigBuildingList(CWorld::GetBigBuildingList(LEVEL_BEACH));
 				ScanBigBuildingList(CWorld::GetBigBuildingList(LEVEL_MAINLAND));
-			} else 
+			}
+			else
 #endif
 			{
 #ifdef FIX_BUGS
-			if(CCollision::ms_collisionInMemory != LEVEL_GENERIC)
+				if (CCollision::ms_collisionInMemory != LEVEL_GENERIC)
 #endif
-				ScanBigBuildingList(CWorld::GetBigBuildingList(CGame::currLevel));
+					ScanBigBuildingList(CWorld::GetBigBuildingList(CGame::currLevel));
 			}
 			ScanBigBuildingList(CWorld::GetBigBuildingList(LEVEL_GENERIC));
 		}
@@ -1174,14 +1259,15 @@ CRenderer::RequestObjectsInFrustum(void)
 	CWorld::AdvanceCurrentScanCode();
 	ms_vecCameraPosition = TheCamera.GetPosition();
 
-	if(cammatrix->at.z > 0.0f){
+	if (cammatrix->at.z > 0.0f) {
 		// looking up, bottom corners are further away
-		vectors[CORNER_LOD_LEFT] = vectors[CORNER_FAR_BOTLEFT] * LOD_DISTANCE/f;
-		vectors[CORNER_LOD_RIGHT] = vectors[CORNER_FAR_BOTRIGHT] * LOD_DISTANCE/f;
-	}else{
+		vectors[CORNER_LOD_LEFT] = vectors[CORNER_FAR_BOTLEFT] * LOD_DISTANCE / f;
+		vectors[CORNER_LOD_RIGHT] = vectors[CORNER_FAR_BOTRIGHT] * LOD_DISTANCE / f;
+	}
+	else {
 		// looking down, top corners are further away
-		vectors[CORNER_LOD_LEFT] = vectors[CORNER_FAR_TOPLEFT] * LOD_DISTANCE/f;
-		vectors[CORNER_LOD_RIGHT] = vectors[CORNER_FAR_TOPRIGHT] * LOD_DISTANCE/f;
+		vectors[CORNER_LOD_LEFT] = vectors[CORNER_FAR_TOPLEFT] * LOD_DISTANCE / f;
+		vectors[CORNER_LOD_RIGHT] = vectors[CORNER_FAR_TOPRIGHT] * LOD_DISTANCE / f;
 	}
 	vectors[CORNER_PRIO_LEFT].x = vectors[CORNER_LOD_LEFT].x * 0.2f;
 	vectors[CORNER_PRIO_LEFT].y = vectors[CORNER_LOD_LEFT].y * 0.2f;
@@ -1191,11 +1277,11 @@ CRenderer::RequestObjectsInFrustum(void)
 	vectors[CORNER_PRIO_RIGHT].z = vectors[CORNER_LOD_RIGHT].z;
 	RwV3dTransformPoints(vectors, vectors, 9, cammatrix);
 
-	if(TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOPDOWN ||
+	if (TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOPDOWN ||
 #ifdef FIX_BUGS
-	   TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_GTACLASSIC ||
+		TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_GTACLASSIC ||
 #endif
-	   TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOP_DOWN_PED){
+		TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOP_DOWN_PED) {
 		CRect rect;
 		int x1, x2, y1, y2;
 		LimitFrustumVector(vectors[CORNER_FAR_TOPLEFT], vectors[CORNER_CAM], -100.0f);
@@ -1207,17 +1293,18 @@ CRenderer::RequestObjectsInFrustum(void)
 		LimitFrustumVector(vectors[CORNER_FAR_BOTLEFT], vectors[CORNER_CAM], -100.0f);
 		rect.ContainPoint(vectors[CORNER_FAR_BOTLEFT]);
 		x1 = CWorld::GetSectorIndexX(rect.left);
-		if(x1 < 0) x1 = 0;
+		if (x1 < 0) x1 = 0;
 		x2 = CWorld::GetSectorIndexX(rect.right);
-		if(x2 >= NUMSECTORS_X-1) x2 = NUMSECTORS_X-1;
+		if (x2 >= NUMSECTORS_X - 1) x2 = NUMSECTORS_X - 1;
 		y1 = CWorld::GetSectorIndexY(rect.top);
-		if(y1 < 0) y1 = 0;
+		if (y1 < 0) y1 = 0;
 		y2 = CWorld::GetSectorIndexY(rect.bottom);
-		if(y2 >= NUMSECTORS_Y-1) y2 = NUMSECTORS_Y-1;
-		for(; x1 <= x2; x1++)
-			for(int y = y1; y <= y2; y++)
+		if (y2 >= NUMSECTORS_Y - 1) y2 = NUMSECTORS_Y - 1;
+		for (; x1 <= x2; x1++)
+			for (int y = y1; y <= y2; y++)
 				ScanSectorList_RequestModels(CWorld::GetSector(x1, y)->m_lists);
-	}else{
+	}
+	else {
 		poly[0].x = CWorld::GetSectorX(vectors[CORNER_CAM].x);
 		poly[0].y = CWorld::GetSectorY(vectors[CORNER_CAM].y);
 		poly[1].x = CWorld::GetSectorX(vectors[CORNER_LOD_LEFT].x);
@@ -1243,8 +1330,6 @@ bool
 CPed::SetupLighting(void)
 {
 	ActivateDirectional();
-	SetAmbientColoursForPedsCarsAndObjects();
-
 #ifndef MASTER
 	// Originally this was being called through iteration of Sectors, but putting it here is better.
 	if (GetDebugDisplay() != 0 && !IsPlayer())
@@ -1253,7 +1338,8 @@ CPed::SetupLighting(void)
 
 	if (bRenderScorched) {
 		WorldReplaceNormalLightsWithScorched(Scene.world, 0.1f);
-	} else {
+	}
+	else {
 		// Note that this lightMult is only affected by LIGHT_DARKEN. If there's no LIGHT_DARKEN, it will be 1.0.
 		float lightMult = CPointLights::GenerateLightsAffectingObject(&GetPosition());
 		if (lightMult != 1.0f) {
@@ -1289,7 +1375,7 @@ CalcNewDelta(RwV2d *a, RwV2d *b)
 #endif
 
 void
-CRenderer::ScanSectorPoly(RwV2d *poly, int32 numVertices, void (*scanfunc)(CPtrList *))
+CRenderer::ScanSectorPoly(RwV2d *poly, int32 numVertices, void(*scanfunc)(CPtrList *))
 {
 	float miny, maxy;
 	int y, yend;
@@ -1305,10 +1391,10 @@ CRenderer::ScanSectorPoly(RwV2d *poly, int32 numVertices, void (*scanfunc)(CPtrL
 	xstart = 9999;
 	xend = -9999;
 
-	for(i = 1; i < numVertices; i++){
-		if(poly[i].y > maxy)
+	for (i = 1; i < numVertices; i++) {
+		if (poly[i].y > maxy)
 			maxy = poly[i].y;
-		if(poly[i].y < miny){
+		if (poly[i].y < miny) {
 			miny = poly[i].y;
 			a2 = i;
 		}
@@ -1318,21 +1404,21 @@ CRenderer::ScanSectorPoly(RwV2d *poly, int32 numVertices, void (*scanfunc)(CPtrL
 
 	// Go left in poly to find first edge b
 	b2 = a2;
-	for(i = 0; i < numVertices; i++){
+	for (i = 0; i < numVertices; i++) {
 		b1 = b2--;
-		if(b2 < 0) b2 = numVertices-1;
-		if(poly[b1].x < xstart)
+		if (b2 < 0) b2 = numVertices - 1;
+		if (poly[b1].x < xstart)
 			xstart = TOINT(poly[b1].x);
-		if(TOINT(poly[b1].y) != TOINT(poly[b2].y))
+		if (TOINT(poly[b1].y) != TOINT(poly[b2].y))
 			break;
 	}
 	// Go right to find first edge a
-	for(i = 0; i < numVertices; i++){
+	for (i = 0; i < numVertices; i++) {
 		a1 = a2++;
-		if(a2 == numVertices) a2 = 0;
-		if(poly[a1].x > xend)
+		if (a2 == numVertices) a2 = 0;
+		if (poly[a1].x > xend)
 			xend = TOINT(poly[a1].x);
-		if(TOINT(poly[a1].y) != TOINT(poly[a2].y))
+		if (TOINT(poly[a1].y) != TOINT(poly[a2].y))
 			break;
 	}
 
@@ -1342,18 +1428,18 @@ CRenderer::ScanSectorPoly(RwV2d *poly, int32 numVertices, void (*scanfunc)(CPtrL
 	deltaB = CalcNewDelta(&poly[b1], &poly[b2]);
 	xB = deltaB * (Ceil(poly[b1].y) - poly[b1].y) + poly[b1].x;
 
-	if(y != yend){
-		if(deltaB < 0.0f && TOINT(xB) < xstart)
+	if (y != yend) {
+		if (deltaB < 0.0f && TOINT(xB) < xstart)
 			xstart = TOINT(xB);
-		if(deltaA >= 0.0f && TOINT(xA) > xend)
+		if (deltaA >= 0.0f && TOINT(xA) > xend)
 			xend = TOINT(xA);
 	}
 
-	while(y <= yend && y < NUMSECTORS_Y){
+	while (y <= yend && y < NUMSECTORS_Y) {
 		// scan one x-line
-		if(y >= 0 && xstart < NUMSECTORS_X)
-			for(x = xstart; x <= xend && x != NUMSECTORS_X; x++)
-				if(x >= 0)
+		if (y >= 0 && xstart < NUMSECTORS_X)
+			for (x = xstart; x <= xend && x != NUMSECTORS_X; x++)
+				if (x >= 0)
 					scanfunc(CWorld::GetSector(x, y)->m_lists);
 
 		// advance one scan line
@@ -1362,71 +1448,76 @@ CRenderer::ScanSectorPoly(RwV2d *poly, int32 numVertices, void (*scanfunc)(CPtrL
 		xB += deltaB;
 
 		// update left side
-		if(y == TOINT(poly[b2].y)){
+		if (y == TOINT(poly[b2].y)) {
 			// reached end of edge
-			if(y == yend){
-				if(deltaB < 0.0f){
-					do{
+			if (y == yend) {
+				if (deltaB < 0.0f) {
+					do {
 						xstart = TOINT(poly[b2--].x);
-						if(b2 < 0) b2 = numVertices-1;
-					}while(xstart > TOINT(poly[b2].x));
-				}else
+						if (b2 < 0) b2 = numVertices - 1;
+					} while (xstart > TOINT(poly[b2].x));
+				}
+				else
 					xstart = TOINT(xB - deltaB);
-			}else{
+			}
+			else {
 				// switch edges
-				if(deltaB < 0.0f)
+				if (deltaB < 0.0f)
 					xstart = TOINT(poly[b2].x);
 				else
 					xstart = TOINT(xB - deltaB);
-				do{
+				do {
 					b1 = b2--;
-					if(b2 < 0) b2 = numVertices-1;
-					if(TOINT(poly[b1].x) < xstart)
+					if (b2 < 0) b2 = numVertices - 1;
+					if (TOINT(poly[b1].x) < xstart)
 						xstart = TOINT(poly[b1].x);
-				}while(y == TOINT(poly[b2].y));
+				} while (y == TOINT(poly[b2].y));
 				deltaB = CalcNewDelta(&poly[b1], &poly[b2]);
 				xB = deltaB * (Ceil(poly[b1].y) - poly[b1].y) + poly[b1].x;
-				if(deltaB < 0.0f && TOINT(xB) < xstart)
+				if (deltaB < 0.0f && TOINT(xB) < xstart)
 					xstart = TOINT(xB);
 			}
-		}else{
-			if(deltaB < 0.0f)
+		}
+		else {
+			if (deltaB < 0.0f)
 				xstart = TOINT(xB);
 			else
 				xstart = TOINT(xB - deltaB);
 		}
 
 		// update right side
-		if(y == TOINT(poly[a2].y)){
+		if (y == TOINT(poly[a2].y)) {
 			// reached end of edge
-			if(y == yend){
-				if(deltaA < 0.0f)
+			if (y == yend) {
+				if (deltaA < 0.0f)
 					xend = TOINT(xA - deltaA);
-				else{
-					do{
+				else {
+					do {
 						xend = TOINT(poly[a2++].x);
-						if(a2 == numVertices) a2 = 0;
-					}while(xend < TOINT(poly[a2].x));
+						if (a2 == numVertices) a2 = 0;
+					} while (xend < TOINT(poly[a2].x));
 				}
-			}else{
+			}
+			else {
 				// switch edges
-				if(deltaA < 0.0f)
+				if (deltaA < 0.0f)
 					xend = TOINT(xA - deltaA);
 				else
 					xend = TOINT(poly[a2].x);
-				do{
+				do {
 					a1 = a2++;
-					if(a2 == numVertices) a2 = 0;
-					if(TOINT(poly[a1].x) > xend)
+					if (a2 == numVertices) a2 = 0;
+					if (TOINT(poly[a1].x) > xend)
 						xend = TOINT(poly[a1].x);
-				}while(y == TOINT(poly[a2].y));
+				} while (y == TOINT(poly[a2].y));
 				deltaA = CalcNewDelta(&poly[a1], &poly[a2]);
 				xA = deltaA * (Ceil(poly[a1].y) - poly[a1].y) + poly[a1].x;
-				if(deltaA >= 0.0f && TOINT(xA) > xend)
+				if (deltaA >= 0.0f && TOINT(xA) > xend)
 					xend = TOINT(xA);
 			}
-		}else{
-			if(deltaA < 0.0f)
+		}
+		else {
+			if (deltaA < 0.0f)
 				xend = TOINT(xA - deltaA);
 			else
 				xend = TOINT(xA);
@@ -1443,9 +1534,9 @@ CRenderer::InsertEntityIntoList(CEntity *ent)
 
 #ifdef NEW_RENDERER
 	// TODO: there are more flags being checked here
-	if(gbNewRenderer && (ent->IsVehicle() || ent->IsPed()))
+	if (gbNewRenderer && (ent->IsVehicle() || ent->IsPed()))
 		ms_aVisibleVehiclePtrs[ms_nNoOfVisibleVehicles++] = ent;
-	else if(gbNewRenderer && ent->IsBuilding())
+	else if (gbNewRenderer && ent->IsBuilding())
 		ms_aVisibleBuildingPtrs[ms_nNoOfVisibleBuildings++] = ent;
 	else
 #endif
@@ -1460,20 +1551,21 @@ CRenderer::ScanBigBuildingList(CPtrList &list)
 	int vis;
 
 	int f = CTimer::GetFrameCounter() & 3;
-	for(node = list.first; node; node = node->next){
+	for (node = list.first; node; node = node->next) {
 		ent = (CEntity*)node->item;
-		if(ent->bOffscreen || (ent->m_randomSeed&3) != f){
+		if (ent->bOffscreen || (ent->m_randomSeed & 3) != f) {
 			ent->bOffscreen = true;
 			vis = SetupBigBuildingVisibility(ent);
-		}else
+		}
+		else
 			vis = VIS_VISIBLE;
-		switch(vis){
+		switch (vis) {
 		case VIS_VISIBLE:
 			InsertEntityIntoList(ent);
 			ent->bOffscreen = false;
 			break;
 		case VIS_STREAMME:
-			if(!CStreaming::ms_disableStreaming)
+			if (!CStreaming::ms_disableStreaming)
 				CStreaming::RequestModel(ent->GetModelIndex(), 0);
 			break;
 		}
@@ -1489,35 +1581,35 @@ CRenderer::ScanSectorList(CPtrList *lists)
 	int i;
 	float dx, dy;
 
-	for(i = 0; i < NUMSECTORENTITYLISTS; i++){
+	for (i = 0; i < NUMSECTORENTITYLISTS; i++) {
 		list = &lists[i];
-		for(node = list->first; node; node = node->next){
+		for (node = list->first; node; node = node->next) {
 			ent = (CEntity*)node->item;
-			if(ent->m_scanCode == CWorld::GetCurrentScanCode())
+			if (ent->m_scanCode == CWorld::GetCurrentScanCode())
 				continue;	// already seen
 			ent->m_scanCode = CWorld::GetCurrentScanCode();
 			ent->bOffscreen = false;
 
-			switch(SetupEntityVisibility(ent)){
+			switch (SetupEntityVisibility(ent)) {
 			case VIS_VISIBLE:
 				InsertEntityIntoList(ent);
 				break;
 			case VIS_INVISIBLE:
-				if(!IsGlass(ent->GetModelIndex()))
+				if (!IsGlass(ent->GetModelIndex()))
 					break;
 				// fall through
 			case VIS_OFFSCREEN:
 				ent->bOffscreen = true;
 				dx = ms_vecCameraPosition.x - ent->GetPosition().x;
 				dy = ms_vecCameraPosition.y - ent->GetPosition().y;
-				if(dx > -30.0f && dx < 30.0f &&
-				   dy > -30.0f && dy < 30.0f &&
-				   ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
+				if (dx > -30.0f && dx < 30.0f &&
+					dy > -30.0f && dy < 30.0f &&
+					ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
 					ms_aInVisibleEntityPtrs[ms_nNoOfInVisibleEntities++] = ent;
 				break;
 			case VIS_STREAMME:
-				if(!CStreaming::ms_disableStreaming)
-					if(!m_loadingPriority || CStreaming::ms_numModelsRequested < 10)
+				if (!CStreaming::ms_disableStreaming)
+					if (!m_loadingPriority || CStreaming::ms_numModelsRequested < 10)
 						CStreaming::RequestModel(ent->GetModelIndex(), 0);
 				break;
 			}
@@ -1534,36 +1626,36 @@ CRenderer::ScanSectorList_Priority(CPtrList *lists)
 	int i;
 	float dx, dy;
 
-	for(i = 0; i < NUMSECTORENTITYLISTS; i++){
+	for (i = 0; i < NUMSECTORENTITYLISTS; i++) {
 		list = &lists[i];
-		for(node = list->first; node; node = node->next){
+		for (node = list->first; node; node = node->next) {
 			ent = (CEntity*)node->item;
-			if(ent->m_scanCode == CWorld::GetCurrentScanCode())
+			if (ent->m_scanCode == CWorld::GetCurrentScanCode())
 				continue;	// already seen
 			ent->m_scanCode = CWorld::GetCurrentScanCode();
 			ent->bOffscreen = false;
 
-			switch(SetupEntityVisibility(ent)){
+			switch (SetupEntityVisibility(ent)) {
 			case VIS_VISIBLE:
 				InsertEntityIntoList(ent);
 				break;
 			case VIS_INVISIBLE:
-				if(!IsGlass(ent->GetModelIndex()))
+				if (!IsGlass(ent->GetModelIndex()))
 					break;
 				// fall through
 			case VIS_OFFSCREEN:
 				ent->bOffscreen = true;
 				dx = ms_vecCameraPosition.x - ent->GetPosition().x;
 				dy = ms_vecCameraPosition.y - ent->GetPosition().y;
-				if(dx > -30.0f && dx < 30.0f &&
-				   dy > -30.0f && dy < 30.0f &&
-				   ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
+				if (dx > -30.0f && dx < 30.0f &&
+					dy > -30.0f && dy < 30.0f &&
+					ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
 					ms_aInVisibleEntityPtrs[ms_nNoOfInVisibleEntities++] = ent;
 				break;
 			case VIS_STREAMME:
-				if(!CStreaming::ms_disableStreaming){
+				if (!CStreaming::ms_disableStreaming) {
 					CStreaming::RequestModel(ent->GetModelIndex(), 0);
-					if(CStreaming::ms_aInfoForModel[ent->GetModelIndex()].m_loadState != STREAMSTATE_LOADED)
+					if (CStreaming::ms_aInfoForModel[ent->GetModelIndex()].m_loadState != STREAMSTATE_LOADED)
 						m_loadingPriority = true;
 				}
 				break;
@@ -1582,15 +1674,15 @@ CRenderer::ScanSectorList_Subway(CPtrList *lists)
 	int i;
 	float dx, dy;
 
-	for(i = 0; i < NUMSECTORENTITYLISTS; i++){
+	for (i = 0; i < NUMSECTORENTITYLISTS; i++) {
 		list = &lists[i];
-		for(node = list->first; node; node = node->next){
+		for (node = list->first; node; node = node->next) {
 			ent = (CEntity*)node->item;
-			if(ent->m_scanCode == CWorld::GetCurrentScanCode())
+			if (ent->m_scanCode == CWorld::GetCurrentScanCode())
 				continue;	// already seen
 			ent->m_scanCode = CWorld::GetCurrentScanCode();
 			ent->bOffscreen = false;
-			switch(SetupEntityVisibility(ent)){
+			switch (SetupEntityVisibility(ent)) {
 			case VIS_VISIBLE:
 				InsertEntityIntoList(ent);
 				break;
@@ -1598,9 +1690,9 @@ CRenderer::ScanSectorList_Subway(CPtrList *lists)
 				ent->bOffscreen = true;
 				dx = ms_vecCameraPosition.x - ent->GetPosition().x;
 				dy = ms_vecCameraPosition.y - ent->GetPosition().y;
-				if(dx > -30.0f && dx < 30.0f &&
-				   dy > -30.0f && dy < 30.0f &&
-				   ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
+				if (dx > -30.0f && dx < 30.0f &&
+					dy > -30.0f && dy < 30.0f &&
+					ms_nNoOfInVisibleEntities < NUMINVISIBLEENTITIES - 1)
 					ms_aInVisibleEntityPtrs[ms_nNoOfInVisibleEntities++] = ent;
 				break;
 			}
@@ -1617,14 +1709,14 @@ CRenderer::ScanSectorList_RequestModels(CPtrList *lists)
 	CEntity *ent;
 	int i;
 
-	for(i = 0; i < NUMSECTORENTITYLISTS; i++){
+	for (i = 0; i < NUMSECTORENTITYLISTS; i++) {
 		list = &lists[i];
-		for(node = list->first; node; node = node->next){
+		for (node = list->first; node; node = node->next) {
 			ent = (CEntity*)node->item;
-			if(ent->m_scanCode == CWorld::GetCurrentScanCode())
+			if (ent->m_scanCode == CWorld::GetCurrentScanCode())
 				continue;	// already seen
 			ent->m_scanCode = CWorld::GetCurrentScanCode();
-			if(ShouldModelBeStreamed(ent, ms_vecCameraPosition))
+			if (ShouldModelBeStreamed(ent, ms_vecCameraPosition))
 				CStreaming::RequestModel(ent->GetModelIndex(), 0);
 		}
 	}
@@ -1636,8 +1728,8 @@ void
 CRenderer::SortBIGBuildings(void)
 {
 	int x, y;
-	for(y = 0; y < NUMSECTORS_Y; y++)
-		for(x = 0; x < NUMSECTORS_X; x++){
+	for (y = 0; y < NUMSECTORS_Y; y++)
+		for (x = 0; x < NUMSECTORS_X; x++) {
 			SortBIGBuildingsForSectorList(&CWorld::GetSector(x, y)->m_lists[ENTITYLIST_BUILDINGS]);
 			SortBIGBuildingsForSectorList(&CWorld::GetSector(x, y)->m_lists[ENTITYLIST_BUILDINGS_OVERLAP]);
 		}
@@ -1649,9 +1741,9 @@ CRenderer::SortBIGBuildingsForSectorList(CPtrList *list)
 	CPtrNode *node;
 	CEntity *ent;
 
-	for(node = list->first; node; node = node->next){
+	for (node = list->first; node; node = node->next) {
 		ent = (CEntity*)node->item;
-		if(ent->bIsBIGBuilding){
+		if (ent->bIsBIGBuilding) {
 			list->RemoveNode(node);
 			list->InsertNode(node);
 		}
@@ -1661,14 +1753,14 @@ CRenderer::SortBIGBuildingsForSectorList(CPtrList *list)
 bool
 CRenderer::ShouldModelBeStreamed(CEntity *ent, const CVector &campos)
 {
-	if(!IsAreaVisible(ent->m_area))
+	if (!IsAreaVisible(ent->m_area))
 		return false;
 	CTimeModelInfo *mi = (CTimeModelInfo *)CModelInfo::GetModelInfo(ent->GetModelIndex());
-	if(mi->GetModelType() == MITYPE_TIME)
-		if(!CClock::GetIsTimeInRange(mi->GetTimeOn(), mi->GetTimeOff()))
+	if (mi->GetModelType() == MITYPE_TIME)
+		if (!CClock::GetIsTimeInRange(mi->GetTimeOn(), mi->GetTimeOff()))
 			return false;
 	float dist = (ent->GetPosition() - campos).Magnitude();
-	if(mi->m_noFade)
+	if (mi->m_noFade)
 		return dist - STREAM_DISTANCE < mi->GetLargestLodDistance();
 	else
 		return dist - FADE_DISTANCE - STREAM_DISTANCE < mi->GetLargestLodDistance();
@@ -1677,9 +1769,9 @@ CRenderer::ShouldModelBeStreamed(CEntity *ent, const CVector &campos)
 void
 CRenderer::RemoveVehiclePedLights(CEntity *ent, bool reset)
 {
-	if(!ent->bRenderScorched){
+	if (!ent->bRenderScorched) {
 		CPointLights::RemoveLightsAffectingObject();
-		if(reset)
+		if (reset)
 			ReSetAmbientAndDirectionalColours();
 	}
 	SetAmbientColours();

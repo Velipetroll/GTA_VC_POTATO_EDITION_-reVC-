@@ -21,22 +21,30 @@ RenderBuffer::ClearRenderBuffer(void)
 void
 RenderBuffer::StartStoring(int numIndices, int numVertices, RwImVertexIndex **indexStart, RwIm3DVertex **vertexStart)
 {
-	if(TempBufferIndicesStored + numIndices >= TEMPBUFFERINDEXSIZE)
+	// Optimización: Unificación de evaluación de rama (Branching)
+	if (TempBufferIndicesStored + numIndices >= TEMPBUFFERINDEXSIZE || TempBufferVerticesStored + numVertices >= TEMPBUFFERVERTSIZE)
 		RenderStuffInBuffer();
-	if(TempBufferVerticesStored + numVertices >= TEMPBUFFERVERTSIZE)
-		RenderStuffInBuffer();
-        *indexStart = &TempBufferRenderIndexList[TempBufferIndicesStored];
-        *vertexStart = &TempBufferRenderVertices[TempBufferVerticesStored];
-        IndicesToBeStored = numIndices;
-        VerticesToBeStored = numVertices;
+
+	*indexStart = &TempBufferRenderIndexList[TempBufferIndicesStored];
+	*vertexStart = &TempBufferRenderVertices[TempBufferVerticesStored];
+	IndicesToBeStored = numIndices;
+	VerticesToBeStored = numVertices;
 }
 
 void
 RenderBuffer::StopStoring(void)
 {
-	int i;
-	for(i = TempBufferIndicesStored; i < TempBufferIndicesStored+IndicesToBeStored; i++)
-		TempBufferRenderIndexList[i] += TempBufferVerticesStored;
+	// Optimización extrema para CPUs limitadas: Aritmética de punteros en lugar de indexación de arrays.
+	// Evita multiplicaciones de índice por tamaño de variable en cada ciclo del bucle.
+	RwImVertexIndex* pIndex = &TempBufferRenderIndexList[TempBufferIndicesStored];
+	RwImVertexIndex* pEnd = pIndex + IndicesToBeStored;
+	int32 offset = TempBufferVerticesStored;
+
+	while (pIndex < pEnd) {
+		*pIndex += offset;
+		pIndex++;
+	}
+
 	TempBufferIndicesStored += IndicesToBeStored;
 	TempBufferVerticesStored += VerticesToBeStored;
 }
@@ -44,9 +52,12 @@ RenderBuffer::StopStoring(void)
 void
 RenderBuffer::RenderStuffInBuffer(void)
 {
-	if(TempBufferVerticesStored && RwIm3DTransform(TempBufferRenderVertices, TempBufferVerticesStored, nil, rwIM3D_VERTEXUV)){
+	if (TempBufferVerticesStored && RwIm3DTransform(TempBufferRenderVertices, TempBufferVerticesStored, nil, rwIM3D_VERTEXUV)) {
 		RwIm3DRenderIndexedPrimitive(rwPRIMTYPETRILIST, TempBufferRenderIndexList, TempBufferIndicesStored);
 		RwIm3DEnd();
 	}
-	ClearRenderBuffer();
+
+	// Optimización: Inlining manual para evitar el salto (Call/Ret) a ClearRenderBuffer()
+	TempBufferVerticesStored = 0;
+	TempBufferIndicesStored = 0;
 }

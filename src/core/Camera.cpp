@@ -304,11 +304,29 @@ CCamera::Process(void)
 	Cams[ActiveCam].Process();
 	Cams[ActiveCam].ProcessSpecialHeightRoutines();
 
+	// --- INICIO CAMBIO: Lógica de Drive-By para 1ra Persona ---
+	if (Cams[ActiveCam].Mode == CCam::MODE_1STPERSON && pTargetEntity && pTargetEntity->IsVehicle()) {
+		CVector camFront = Cams[ActiveCam].Front;
+		CVector carFront = ((CVehicle*)pTargetEntity)->GetForward();
+
+		float angleCam = CGeneral::GetATanOfXY(camFront.x, camFront.y);
+		float angleCar = CGeneral::GetATanOfXY(carFront.x, carFront.y);
+		float diff = angleCam - angleCar;
+
+		while (diff >= PI) diff -= 2 * PI;
+		while (diff < -PI) diff += 2 * PI;
+
+		if (diff > 0.6f) Cams[ActiveCam].DirectionWasLooking = LOOKING_LEFT;
+		else if (diff < -0.6f) Cams[ActiveCam].DirectionWasLooking = LOOKING_RIGHT;
+		else Cams[ActiveCam].DirectionWasLooking = LOOKING_FORWARD;
+	}
+	// --- FIN CAMBIO ---
+
+
 	if(Cams[ActiveCam].Front.x == 0.0f && Cams[ActiveCam].Front.y == 0.0f)
 		newBeta = 0.0f;
 	else
 		newBeta = CGeneral::GetATanOfXY(Cams[ActiveCam].Front.x, Cams[ActiveCam].Front.y);
-
 
 	// Stop transition when it's done
 	if(m_uiTransitionState != 0){
@@ -544,6 +562,59 @@ CCamera::Process(void)
 		CamUp.Normalise();
 	}
 
+/// --- COMIENZO DEL CAMBIO PARA PRIMERA PERSONA ---
+	if (Cams[ActiveCam].Mode == CCam::MODE_1STPERSON && pTargetEntity && pTargetEntity->IsVehicle()) {
+		CPed* pPed = FindPlayerPed();
+		if (pPed) {
+			CVector offset;
+			float nearClip;
+			CVehicle* pVeh = (CVehicle*)pTargetEntity;
+
+			if (pVeh->IsBike()) {
+				int modelId = pVeh->GetModelIndex();
+
+				if (modelId == MI_PCJ600) {
+					// Deportiva: Tommy va muy inclinado hacia adelante
+					offset.x = 0.0f;
+					offset.y = 0.6f; // Más adelante
+					offset.z = 0.34; // Más baja
+					nearClip = 0.30f; // Menor recorte para no borrar el tanque
+				}
+				else if (modelId == MI_FREEWAY || modelId == MI_ANGEL) {
+					// Choppers: Tommy va recostado hacia atrás
+					offset.x = 0.0f;
+					offset.y = 0.0f; // Más atrás
+					offset.z = 0.65f;
+					nearClip = 0.30f;
+				}
+				else if (modelId == MI_SANCHEZ) {
+					// Motocross: Postura recta y moto alta
+					offset.x = 0.0f;
+					offset.y = 0.065f;
+					offset.z = 0.3f;
+					nearClip = 0.4f;
+				}
+				else {
+					// Scooters (Faggio, Pizza Boy) u otras motos añadidas
+					offset.x = 0.0f;
+					offset.y = 0.10f;
+					offset.z = 0.37f;
+					nearClip = 0.25f;
+				}
+			}
+			else {
+				// Carros (y botes/aviones)
+				offset.x = 0.0f;
+				offset.y = -0.35f;
+				offset.z = 0.6f;
+				nearClip = 0.275f;
+			}
+
+			CamSource = pPed->GetMatrix() * offset;
+			RwCameraSetNearClipPlane(Scene.camera, nearClip);
+		}
+	}
+	// --- FIN DEL CAMBIO ---
 	GetMatrix().GetRight() = CrossProduct(CamUp, CamFront);	// actually Left
 	GetMatrix().GetForward() = CamFront;
 	GetMatrix().GetUp() = CamUp;
@@ -2565,24 +2636,7 @@ CCamera::ProcessWideScreenOn(void)
 void
 CCamera::DrawBordersForWideScreen(void)
 {
-	float bottom, top;
-	if (m_WideScreenOn) {
-		float borderSize = (SCREEN_HEIGHT / 2) * (m_ScreenReductionPercentage / 100.f);
-		top = borderSize - SCREEN_SCALE_Y(22.f);
-		bottom = SCREEN_HEIGHT - borderSize - SCREEN_SCALE_Y(14.f);
-	} else {
-		top = 0.f;
-		bottom = SCREEN_HEIGHT;
-	}
 
-	if(m_BlurType == MOTION_BLUR_NONE || m_BlurType == MOTION_BLUR_LIGHT_SCENE)
-		SetMotionBlurAlpha(80);
-
-	// top border
-	CSprite2d::DrawRect(CRect(0.0f, 0.0f, SCREEN_WIDTH, top), CRGBA(0, 0, 0, 255));
-
-	// bottom border
-	CSprite2d::DrawRect(CRect(0.0f, bottom, SCREEN_WIDTH, SCREEN_HEIGHT), CRGBA(0, 0, 0, 255));
 }
 
 
@@ -3765,21 +3819,22 @@ CCamera::SetNearClipScript(float clip)
 void
 CCamera::ProcessFade(void)
 {
-	if(m_bFading){
-		if(m_iFadingDirection == FADE_IN){
-			if(m_fTimeToFadeOut != 0.0f)
-				m_fFLOATingFade -= CTimer::GetTimeStepInSeconds() * 255.0f / m_fTimeToFadeOut;
-			else
-				m_fFLOATingFade = 0.0f;
+	if (m_bFading) {
+		// OPTIMIZACIÓN LIGERA: Transición con matemática básica.
+		// Reemplazamos la costosa división de tiempo por una simple resta/suma constante.
+		// A 30 FPS, un salto de 15.0f completa el fundido (0 a 255) en ~0.5 segundos.
+
+		float fadeStep = 4.25f;
+
+		if (m_iFadingDirection == FADE_IN) {
+			m_fFLOATingFade -= fadeStep;
 			if (m_fFLOATingFade <= 0.0f) {
 				m_bFading = false;
 				m_fFLOATingFade = 0.0f;
 			}
-		}else if(m_iFadingDirection == FADE_OUT){
-			if(m_fTimeToFadeOut != 0.0f)
-				m_fFLOATingFade += CTimer::GetTimeStepInSeconds() * 255.0f / m_fTimeToFadeOut;
-			else
-				m_fFLOATingFade = 255.0f;
+		}
+		else if (m_iFadingDirection == FADE_OUT) {
+			m_fFLOATingFade += fadeStep;
 			if (m_fFLOATingFade >= 255.0f) {
 				m_bFading = false;
 				m_fFLOATingFade = 255.0f;
@@ -3871,12 +3926,7 @@ CCamera::GetScreenFadeStatus(void)
 void
 CCamera::RenderMotionBlur(void)
 {
-	if(m_BlurType == 0)
-		return;
 
-	CMBlur::MotionBlurRender(m_pRwCamera,
-		m_BlurRed, m_BlurGreen, m_BlurBlue,
-		m_motionBlur, m_BlurType, m_imotionBlurAddAlpha);
 }
 
 void

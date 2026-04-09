@@ -503,18 +503,24 @@ bool CEntity::IsEntityOccluded(void) {
 
 	if (COcclusion::NumActiveOccluders == 0 || !CalcScreenCoors(GetBoundCentre(), &coors, &width, &height))
 		return false;
-
-	float area = Max(width, height) * GetBoundRadius() * 0.9f;
+	// --- OPTIMIZACIÓN EXTREMA: Oclusión Agresiva ---
+	// Reducimos el área estimada del objeto del 90% original al 40% (0.4f).
+	// Esto "engaña" a la pared (occluder) haciéndole creer que el objeto detrás de ella es más pequeño,
+	// por lo que decidirá ocultarlo (dejar de renderizarlo) mucho más rápido.
+	float area = Max(width, height) * GetBoundRadius() * 0.4f;
 
 	for (int i = 0; i < COcclusion::NumActiveOccluders; i++) {
-		if (coors.z - (GetBoundRadius() * 0.85f) > COcclusion::aActiveOccluders[i].radius) {
+		// Reducimos el margen de profundidad (z) del 85% al 20% (0.2f).
+		// Esto oculta objetos incluso si su esfera de colisión sobresale un poco del edificio.
+		if (coors.z - (GetBoundRadius() * 0.2f) > COcclusion::aActiveOccluders[i].radius) {
 			if (COcclusion::aActiveOccluders[i].IsPointWithinOcclusionArea(coors.x, coors.y, area)) {
-				return true;
+				return true; // ¡El objeto es aniquilado de la GPU prematuramente!
 			}
 
 			if (COcclusion::aActiveOccluders[i].IsPointWithinOcclusionArea(coors.x, coors.y, 0.0f)) {
 				CVector min = m_matrix * CModelInfo::GetColModel(m_modelIndex)->boundingBox.min;
 				CVector max = m_matrix * CModelInfo::GetColModel(m_modelIndex)->boundingBox.max;
+				// ... (el resto del código continúa normal hacia abajo)
 
 				if (CalcScreenCoors(min, &coors) && !COcclusion::aActiveOccluders[i].IsPointWithinOcclusionArea(coors.x, coors.y, 0.0f)) continue;
 				if (CalcScreenCoors(CVector(max.x, max.y, min.z), &coors) && !COcclusion::aActiveOccluders[i].IsPointWithinOcclusionArea(coors.x, coors.y, 0.0f)) continue;

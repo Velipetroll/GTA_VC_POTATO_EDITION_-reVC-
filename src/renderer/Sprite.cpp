@@ -14,7 +14,7 @@ float CSprite::m_f2DFarScreenZ;
 float CSprite::m_fRecipNearClipPlane;
 int32 CSprite::m_bFlushSpriteBufferSwitchZTest;
 
-float 
+float
 CSprite::CalcHorizonCoors(void)
 {
 	CVector p = TheCamera.GetPosition() + CVector(TheCamera.CamFrontXNorm, TheCamera.CamFrontYNorm, 0.0f)*3000.0f;
@@ -23,18 +23,17 @@ CSprite::CalcHorizonCoors(void)
 	return p.y * SCREEN_HEIGHT / p.z;
 }
 
-bool 
+bool
 CSprite::CalcScreenCoors(const RwV3d &in, RwV3d *out, float *outw, float *outh, bool farclip)
 {
 	CVector viewvec = TheCamera.m_viewMatrix * in;
 	*out = viewvec;
-	if(out->z <= CDraw::GetNearClipZ() + 1.0f) return false;
-	if(out->z >= CDraw::GetFarClipZ() && farclip) return false;
-	float recip = 1.0f/out->z;
+	if (out->z <= CDraw::GetNearClipZ() + 1.0f) return false;
+	if (out->z >= CDraw::GetFarClipZ() && farclip) return false;
+	float recip = 1.0f / out->z;
 	out->x *= SCREEN_WIDTH * recip;
 	out->y *= SCREEN_HEIGHT * recip;
 	const float fov = DefaultFOV;
-	// this is used to scale correctly if you zoom in with sniper rifle
 	float fovScale = fov / CDraw::GetFOV();
 
 #ifdef FIX_SPRITES
@@ -49,7 +48,7 @@ CSprite::CalcScreenCoors(const RwV3d &in, RwV3d *out, float *outw, float *outh, 
 
 #define SPRITEBUFFERSIZE 64
 static int32 nSpriteBufferIndex;
-static RwIm2DVertex SpriteBufferVerts[SPRITEBUFFERSIZE*6];
+static RwIm2DVertex SpriteBufferVerts[SPRITEBUFFERSIZE * 6];
 static RwIm2DVertex verts[4];
 
 void
@@ -69,13 +68,14 @@ CSprite::InitSpriteBuffer2D(void)
 void
 CSprite::FlushSpriteBuffer(void)
 {
-	if(nSpriteBufferIndex > 0){
-		if(m_bFlushSpriteBufferSwitchZTest){
+	if (nSpriteBufferIndex > 0) {
+		if (m_bFlushSpriteBufferSwitchZTest) {
 			RwRenderStateSet(rwRENDERSTATEZTESTENABLE, (void*)FALSE);
-			RwIm2DRenderPrimitive(rwPRIMTYPETRILIST, SpriteBufferVerts, nSpriteBufferIndex*6);
+			RwIm2DRenderPrimitive(rwPRIMTYPETRILIST, SpriteBufferVerts, nSpriteBufferIndex * 6);
 			RwRenderStateSet(rwRENDERSTATEZTESTENABLE, (void*)TRUE);
-		}else
-			RwIm2DRenderPrimitive(rwPRIMTYPETRILIST, SpriteBufferVerts, nSpriteBufferIndex*6);
+		}
+		else
+			RwIm2DRenderPrimitive(rwPRIMTYPETRILIST, SpriteBufferVerts, nSpriteBufferIndex * 6);
 		nSpriteBufferIndex = 0;
 	}
 }
@@ -83,59 +83,40 @@ CSprite::FlushSpriteBuffer(void)
 void
 CSprite::RenderOneXLUSprite(float x, float y, float z, float w, float h, uint8 r, uint8 g, uint8 b, int16 intens, float recipz, uint8 a)
 {
-	static short indices[] = { 0, 1, 2, 3 };
-	// 0---3
-	// |   |
-	// 1---2
 	float xs[4];
 	float ys[4];
-	float us[4];
-	float vs[4];
+	float us[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+	float vs[4] = { 0.0f, 1.0f, 1.0f, 0.0f };
 	int i;
 
-	xs[0] = x-w;	us[0] = 0.0f;
-	xs[1] = x-w;	us[1] = 0.0f;
-	xs[2] = x+w;	us[2] = 1.0f;
-	xs[3] = x+w;	us[3] = 1.0f;
+	xs[0] = x - w;
+	xs[1] = x - w;
+	xs[2] = x + w;
+	xs[3] = x + w;
 
-	ys[0] = y-h;	vs[0] = 0.0f;
-	ys[1] = y+h;	vs[1] = 1.0f;
-	ys[2] = y+h;	vs[2] = 1.0f;
-	ys[3] = y-h;	vs[3] = 0.0f;
+	ys[0] = y - h;
+	ys[1] = y + h;
+	ys[2] = y + h;
+	ys[3] = y - h;
 
-	// clip
-	for(i = 0; i < 4; i++){
-		if(xs[i] < 0.0f){
-			us[i] = -xs[i] / (2.0f*w);
-			xs[i] = 0.0f;
-		}
-		if(xs[i] > SCREEN_WIDTH){
-			us[i] = 1.0f - (xs[i]-SCREEN_WIDTH) / (2.0f*w);
-			xs[i] = SCREEN_WIDTH;
-		}
-		if(ys[i] < 0.0f){
-			vs[i] = -ys[i] / (2.0f*h);
-			ys[i] = 0.0f;
-		}
-		if(ys[i] > SCREEN_HEIGHT){
-			vs[i] = 1.0f - (ys[i]-SCREEN_HEIGHT) / (2.0f*h);
-			ys[i] = SCREEN_HEIGHT;
-		}
-	}
+	// CPU Software Clipping eliminado. Delegado al hardware de la GPU para ahorrar ciclos.
 
-	// (DrawZ - DrawNear)/(DrawFar - DrawNear) = (SpriteZ-SpriteNear)/(SpriteFar-SpriteNear)
-	// So to calculate SpriteZ:
 	float screenz = m_f2DNearScreenZ +
-		(z-CDraw::GetNearClipZ())*(m_f2DFarScreenZ-m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
-		((CDraw::GetFarClipZ()-CDraw::GetNearClipZ())*z);
+		(z - CDraw::GetNearClipZ())*(m_f2DFarScreenZ - m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
+		((CDraw::GetFarClipZ() - CDraw::GetNearClipZ())*z);
 
-	for(i = 0; i < 4; i++){
+	// Precálculo de color
+	uint8 fR = (r * intens) >> 8;
+	uint8 fG = (g * intens) >> 8;
+	uint8 fB = (b * intens) >> 8;
+
+	for (i = 0; i < 4; i++) {
 		RwIm2DVertexSetScreenX(&verts[i], xs[i]);
 		RwIm2DVertexSetScreenY(&verts[i], ys[i]);
 		RwIm2DVertexSetScreenZ(&verts[i], screenz);
 		RwIm2DVertexSetCameraZ(&verts[i], z);
 		RwIm2DVertexSetRecipCameraZ(&verts[i], recipz);
-		RwIm2DVertexSetIntRGBA(&verts[i], r*intens>>8, g*intens>>8, b*intens>>8, a);
+		RwIm2DVertexSetIntRGBA(&verts[i], fR, fG, fB, a);
 		RwIm2DVertexSetU(&verts[i], us[i], recipz);
 		RwIm2DVertexSetV(&verts[i], vs[i], recipz);
 	}
@@ -150,51 +131,49 @@ CSprite::RenderOneXLUSprite_Rotate_Aspect(float x, float y, float z, float w, fl
 
 	float xs[4];
 	float ys[4];
-	float us[4];
-	float vs[4];
+	float us[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+	float vs[4] = { 0.0f, 1.0f, 1.0f, 0.0f };
 	int i;
 
-	// Fade out when too near
-	// why not in buffered version?
-	if(z < 2.3f){
-		if(z < 1.3f)
-			return;
-		int f = (z - 1.3f)/(2.3f-1.3f) * 255;
+	if (z < 2.3f) {
+		if (z < 1.3f) return;
+		int f = (z - 1.3f) / (2.3f - 1.3f) * 255;
 		r = f*r >> 8;
 		g = f*g >> 8;
 		b = f*b >> 8;
 		intens = f*intens >> 8;
 	}
 
-	xs[0] = x + w*(-c-s);	us[0] = 0.0f;
-	xs[1] = x + w*(-c+s);	us[1] = 0.0f;
-	xs[2] = x + w*(+c+s);	us[2] = 1.0f;
-	xs[3] = x + w*(+c-s);	us[3] = 1.0f;
+	xs[0] = x + w*(-c - s);
+	xs[1] = x + w*(-c + s);
+	xs[2] = x + w*(+c + s);
+	xs[3] = x + w*(+c - s);
 
-	ys[0] = y + h*(-c+s);	vs[0] = 0.0f;
-	ys[1] = y + h*(+c+s);	vs[1] = 1.0f;
-	ys[2] = y + h*(+c-s);	vs[2] = 1.0f;
-	ys[3] = y + h*(-c-s);	vs[3] = 0.0f;
+	ys[0] = y + h*(-c + s);
+	ys[1] = y + h*(+c + s);
+	ys[2] = y + h*(+c - s);
+	ys[3] = y + h*(-c - s);
 
-	// No clipping, just culling
-	if(xs[0] < 0.0f && xs[1] < 0.0f && xs[2] < 0.0f && xs[3] < 0.0f) return;
-	if(ys[0] < 0.0f && ys[1] < 0.0f && ys[2] < 0.0f && ys[3] < 0.0f) return;
-	if(xs[0] > SCREEN_WIDTH && xs[1] > SCREEN_WIDTH &&
-	   xs[2] > SCREEN_WIDTH && xs[3] > SCREEN_WIDTH) return;
-	if(ys[0] > SCREEN_HEIGHT && ys[1] > SCREEN_HEIGHT &&
-	   ys[2] > SCREEN_HEIGHT && ys[3] > SCREEN_HEIGHT) return;
+	if (xs[0] < 0.0f && xs[1] < 0.0f && xs[2] < 0.0f && xs[3] < 0.0f) return;
+	if (ys[0] < 0.0f && ys[1] < 0.0f && ys[2] < 0.0f && ys[3] < 0.0f) return;
+	if (xs[0] > SCREEN_WIDTH && xs[1] > SCREEN_WIDTH && xs[2] > SCREEN_WIDTH && xs[3] > SCREEN_WIDTH) return;
+	if (ys[0] > SCREEN_HEIGHT && ys[1] > SCREEN_HEIGHT && ys[2] > SCREEN_HEIGHT && ys[3] > SCREEN_HEIGHT) return;
 
 	float screenz = m_f2DNearScreenZ +
-		(z-CDraw::GetNearClipZ())*(m_f2DFarScreenZ-m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
-		((CDraw::GetFarClipZ()-CDraw::GetNearClipZ())*z);
+		(z - CDraw::GetNearClipZ())*(m_f2DFarScreenZ - m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
+		((CDraw::GetFarClipZ() - CDraw::GetNearClipZ())*z);
 
-	for(i = 0; i < 4; i++){
+	uint8 fR = (r * intens) >> 8;
+	uint8 fG = (g * intens) >> 8;
+	uint8 fB = (b * intens) >> 8;
+
+	for (i = 0; i < 4; i++) {
 		RwIm2DVertexSetScreenX(&verts[i], xs[i]);
 		RwIm2DVertexSetScreenY(&verts[i], ys[i]);
 		RwIm2DVertexSetScreenZ(&verts[i], screenz);
 		RwIm2DVertexSetCameraZ(&verts[i], z);
 		RwIm2DVertexSetRecipCameraZ(&verts[i], recipz);
-		RwIm2DVertexSetIntRGBA(&verts[i], r*intens>>8, g*intens>>8, b*intens>>8, a);
+		RwIm2DVertexSetIntRGBA(&verts[i], fR, fG, fB, a);
 		RwIm2DVertexSetU(&verts[i], us[i], recipz);
 		RwIm2DVertexSetV(&verts[i], vs[i], recipz);
 	}
@@ -206,63 +185,46 @@ CSprite::RenderBufferedOneXLUSprite(float x, float y, float z, float w, float h,
 {
 	m_bFlushSpriteBufferSwitchZTest = 0;
 
-	// 0---3
-	// |   |
-	// 1---2
 	float xs[4];
 	float ys[4];
-	float us[4];
-	float vs[4];
+	float us[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+	float vs[4] = { 0.0f, 1.0f, 1.0f, 0.0f };
 	int i;
 
-	xs[0] = x-w;	us[0] = 0.0f;
-	xs[1] = x-w;	us[1] = 0.0f;
-	xs[2] = x+w;	us[2] = 1.0f;
-	xs[3] = x+w;	us[3] = 1.0f;
+	xs[0] = x - w;
+	xs[1] = x - w;
+	xs[2] = x + w;
+	xs[3] = x + w;
 
-	ys[0] = y-h;	vs[0] = 0.0f;
-	ys[1] = y+h;	vs[1] = 1.0f;
-	ys[2] = y+h;	vs[2] = 1.0f;
-	ys[3] = y-h;	vs[3] = 0.0f;
+	ys[0] = y - h;
+	ys[1] = y + h;
+	ys[2] = y + h;
+	ys[3] = y - h;
 
-	// clip
-	for(i = 0; i < 4; i++){
-		if(xs[i] < 0.0f){
-			us[i] = -xs[i] / (2.0f*w);
-			xs[i] = 0.0f;
-		}
-		if(xs[i] > SCREEN_WIDTH){
-			us[i] = 1.0f - (xs[i]-SCREEN_WIDTH) / (2.0f*w);
-			xs[i] = SCREEN_WIDTH;
-		}
-		if(ys[i] < 0.0f){
-			vs[i] = -ys[i] / (2.0f*h);
-			ys[i] = 0.0f;
-		}
-		if(ys[i] > SCREEN_HEIGHT){
-			vs[i] = 1.0f - (ys[i]-SCREEN_HEIGHT) / (2.0f*h);
-			ys[i] = SCREEN_HEIGHT;
-		}
-	}
+	// CPU Software Clipping eliminado
 
 	float screenz = m_f2DNearScreenZ +
-		(z-CDraw::GetNearClipZ())*(m_f2DFarScreenZ-m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
-		((CDraw::GetFarClipZ()-CDraw::GetNearClipZ())*z);
+		(z - CDraw::GetNearClipZ())*(m_f2DFarScreenZ - m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
+		((CDraw::GetFarClipZ() - CDraw::GetNearClipZ())*z);
 
-	RwIm2DVertex *vert = &SpriteBufferVerts[nSpriteBufferIndex*6];
+	uint8 fR = (r * intens) >> 8;
+	uint8 fG = (g * intens) >> 8;
+	uint8 fB = (b * intens) >> 8;
+
+	RwIm2DVertex *vert = &SpriteBufferVerts[nSpriteBufferIndex * 6];
 	static int indices[6] = { 0, 1, 2, 3, 0, 2 };
-	for(i = 0; i < 6; i++){
+	for (i = 0; i < 6; i++) {
 		RwIm2DVertexSetScreenX(&vert[i], xs[indices[i]]);
 		RwIm2DVertexSetScreenY(&vert[i], ys[indices[i]]);
 		RwIm2DVertexSetScreenZ(&vert[i], screenz);
 		RwIm2DVertexSetCameraZ(&vert[i], z);
 		RwIm2DVertexSetRecipCameraZ(&vert[i], recipz);
-		RwIm2DVertexSetIntRGBA(&vert[i], r*intens>>8, g*intens>>8, b*intens>>8, a);
+		RwIm2DVertexSetIntRGBA(&vert[i], fR, fG, fB, a);
 		RwIm2DVertexSetU(&vert[i], us[indices[i]], recipz);
 		RwIm2DVertexSetV(&vert[i], vs[indices[i]], recipz);
 	}
 	nSpriteBufferIndex++;
-	if(nSpriteBufferIndex >= SPRITEBUFFERSIZE)
+	if (nSpriteBufferIndex >= SPRITEBUFFERSIZE)
 		FlushSpriteBuffer();
 }
 
@@ -270,52 +232,52 @@ void
 CSprite::RenderBufferedOneXLUSprite_Rotate_Dimension(float x, float y, float z, float w, float h, uint8 r, uint8 g, uint8 b, int16 intens, float recipz, float rotation, uint8 a)
 {
 	m_bFlushSpriteBufferSwitchZTest = 0;
-	// TODO: replace with lookup
 	float c = Cos(rotation);
 	float s = Sin(rotation);
 
 	float xs[4];
 	float ys[4];
-	float us[4];
-	float vs[4];
+	float us[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+	float vs[4] = { 0.0f, 1.0f, 1.0f, 0.0f };
 	int i;
 
-	xs[0] = x - c*w - s*h;	us[0] = 0.0f;
-	xs[1] = x - c*w + s*h;	us[1] = 0.0f;
-	xs[2] = x + c*w + s*h;	us[2] = 1.0f;
-	xs[3] = x + c*w - s*h;	us[3] = 1.0f;
+	xs[0] = x - c*w - s*h;
+	xs[1] = x - c*w + s*h;
+	xs[2] = x + c*w + s*h;
+	xs[3] = x + c*w - s*h;
 
-	ys[0] = y - c*h + s*w;	vs[0] = 0.0f;
-	ys[1] = y + c*h + s*w;	vs[1] = 1.0f;
-	ys[2] = y + c*h - s*w;	vs[2] = 1.0f;
-	ys[3] = y - c*h - s*w;	vs[3] = 0.0f;
+	ys[0] = y - c*h + s*w;
+	ys[1] = y + c*h + s*w;
+	ys[2] = y + c*h - s*w;
+	ys[3] = y - c*h - s*w;
 
-	// No clipping, just culling
-	if(xs[0] < 0.0f && xs[1] < 0.0f && xs[2] < 0.0f && xs[3] < 0.0f) return;
-	if(ys[0] < 0.0f && ys[1] < 0.0f && ys[2] < 0.0f && ys[3] < 0.0f) return;
-	if(xs[0] > SCREEN_WIDTH && xs[1] > SCREEN_WIDTH &&
-	   xs[2] > SCREEN_WIDTH && xs[3] > SCREEN_WIDTH) return;
-	if(ys[0] > SCREEN_HEIGHT && ys[1] > SCREEN_HEIGHT &&
-	   ys[2] > SCREEN_HEIGHT && ys[3] > SCREEN_HEIGHT) return;
+	if (xs[0] < 0.0f && xs[1] < 0.0f && xs[2] < 0.0f && xs[3] < 0.0f) return;
+	if (ys[0] < 0.0f && ys[1] < 0.0f && ys[2] < 0.0f && ys[3] < 0.0f) return;
+	if (xs[0] > SCREEN_WIDTH && xs[1] > SCREEN_WIDTH && xs[2] > SCREEN_WIDTH && xs[3] > SCREEN_WIDTH) return;
+	if (ys[0] > SCREEN_HEIGHT && ys[1] > SCREEN_HEIGHT && ys[2] > SCREEN_HEIGHT && ys[3] > SCREEN_HEIGHT) return;
 
 	float screenz = m_f2DNearScreenZ +
-		(z-CDraw::GetNearClipZ())*(m_f2DFarScreenZ-m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
-		((CDraw::GetFarClipZ()-CDraw::GetNearClipZ())*z);
+		(z - CDraw::GetNearClipZ())*(m_f2DFarScreenZ - m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
+		((CDraw::GetFarClipZ() - CDraw::GetNearClipZ())*z);
 
-	RwIm2DVertex *vert = &SpriteBufferVerts[nSpriteBufferIndex*6];
+	uint8 fR = (r * intens) >> 8;
+	uint8 fG = (g * intens) >> 8;
+	uint8 fB = (b * intens) >> 8;
+
+	RwIm2DVertex *vert = &SpriteBufferVerts[nSpriteBufferIndex * 6];
 	static int indices[6] = { 0, 1, 2, 3, 0, 2 };
-	for(i = 0; i < 6; i++){
+	for (i = 0; i < 6; i++) {
 		RwIm2DVertexSetScreenX(&vert[i], xs[indices[i]]);
 		RwIm2DVertexSetScreenY(&vert[i], ys[indices[i]]);
 		RwIm2DVertexSetScreenZ(&vert[i], screenz);
 		RwIm2DVertexSetCameraZ(&vert[i], z);
 		RwIm2DVertexSetRecipCameraZ(&vert[i], recipz);
-		RwIm2DVertexSetIntRGBA(&vert[i], r*intens>>8, g*intens>>8, b*intens>>8, a);
+		RwIm2DVertexSetIntRGBA(&vert[i], fR, fG, fB, a);
 		RwIm2DVertexSetU(&vert[i], us[indices[i]], recipz);
 		RwIm2DVertexSetV(&vert[i], vs[indices[i]], recipz);
 	}
 	nSpriteBufferIndex++;
-	if(nSpriteBufferIndex >= SPRITEBUFFERSIZE)
+	if (nSpriteBufferIndex >= SPRITEBUFFERSIZE)
 		FlushSpriteBuffer();
 }
 
@@ -328,46 +290,47 @@ CSprite::RenderBufferedOneXLUSprite_Rotate_Aspect(float x, float y, float z, flo
 
 	float xs[4];
 	float ys[4];
-	float us[4];
-	float vs[4];
+	float us[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+	float vs[4] = { 0.0f, 1.0f, 1.0f, 0.0f };
 	int i;
 
-	xs[0] = x + w*(-c-s);	us[0] = 0.0f;
-	xs[1] = x + w*(-c+s);	us[1] = 0.0f;
-	xs[2] = x + w*(+c+s);	us[2] = 1.0f;
-	xs[3] = x + w*(+c-s);	us[3] = 1.0f;
+	xs[0] = x + w*(-c - s);
+	xs[1] = x + w*(-c + s);
+	xs[2] = x + w*(+c + s);
+	xs[3] = x + w*(+c - s);
 
-	ys[0] = y + h*(-c+s);	vs[0] = 0.0f;
-	ys[1] = y + h*(+c+s);	vs[1] = 1.0f;
-	ys[2] = y + h*(+c-s);	vs[2] = 1.0f;
-	ys[3] = y + h*(-c-s);	vs[3] = 0.0f;
+	ys[0] = y + h*(-c + s);
+	ys[1] = y + h*(+c + s);
+	ys[2] = y + h*(+c - s);
+	ys[3] = y + h*(-c - s);
 
-	// No clipping, just culling
-	if(xs[0] < 0.0f && xs[1] < 0.0f && xs[2] < 0.0f && xs[3] < 0.0f) return;
-	if(ys[0] < 0.0f && ys[1] < 0.0f && ys[2] < 0.0f && ys[3] < 0.0f) return;
-	if(xs[0] > SCREEN_WIDTH && xs[1] > SCREEN_WIDTH &&
-	   xs[2] > SCREEN_WIDTH && xs[3] > SCREEN_WIDTH) return;
-	if(ys[0] > SCREEN_HEIGHT && ys[1] > SCREEN_HEIGHT &&
-	   ys[2] > SCREEN_HEIGHT && ys[3] > SCREEN_HEIGHT) return;
+	if (xs[0] < 0.0f && xs[1] < 0.0f && xs[2] < 0.0f && xs[3] < 0.0f) return;
+	if (ys[0] < 0.0f && ys[1] < 0.0f && ys[2] < 0.0f && ys[3] < 0.0f) return;
+	if (xs[0] > SCREEN_WIDTH && xs[1] > SCREEN_WIDTH && xs[2] > SCREEN_WIDTH && xs[3] > SCREEN_WIDTH) return;
+	if (ys[0] > SCREEN_HEIGHT && ys[1] > SCREEN_HEIGHT && ys[2] > SCREEN_HEIGHT && ys[3] > SCREEN_HEIGHT) return;
 
 	float screenz = m_f2DNearScreenZ +
-		(z-CDraw::GetNearClipZ())*(m_f2DFarScreenZ-m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
-		((CDraw::GetFarClipZ()-CDraw::GetNearClipZ())*z);
+		(z - CDraw::GetNearClipZ())*(m_f2DFarScreenZ - m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
+		((CDraw::GetFarClipZ() - CDraw::GetNearClipZ())*z);
 
-	RwIm2DVertex *vert = &SpriteBufferVerts[nSpriteBufferIndex*6];
+	uint8 fR = (r * intens) >> 8;
+	uint8 fG = (g * intens) >> 8;
+	uint8 fB = (b * intens) >> 8;
+
+	RwIm2DVertex *vert = &SpriteBufferVerts[nSpriteBufferIndex * 6];
 	static int indices[6] = { 0, 1, 2, 3, 0, 2 };
-	for(i = 0; i < 6; i++){
+	for (i = 0; i < 6; i++) {
 		RwIm2DVertexSetScreenX(&vert[i], xs[indices[i]]);
 		RwIm2DVertexSetScreenY(&vert[i], ys[indices[i]]);
 		RwIm2DVertexSetScreenZ(&vert[i], screenz);
 		RwIm2DVertexSetCameraZ(&vert[i], z);
 		RwIm2DVertexSetRecipCameraZ(&vert[i], recipz);
-		RwIm2DVertexSetIntRGBA(&vert[i], r*intens>>8, g*intens>>8, b*intens>>8, a);
+		RwIm2DVertexSetIntRGBA(&vert[i], fR, fG, fB, a);
 		RwIm2DVertexSetU(&vert[i], us[indices[i]], recipz);
 		RwIm2DVertexSetV(&vert[i], vs[indices[i]], recipz);
 	}
 	nSpriteBufferIndex++;
-	if(nSpriteBufferIndex >= SPRITEBUFFERSIZE)
+	if (nSpriteBufferIndex >= SPRITEBUFFERSIZE)
 		FlushSpriteBuffer();
 }
 
@@ -380,61 +343,45 @@ CSprite::RenderBufferedOneXLUSprite_Rotate_2Colours(float x, float y, float z, f
 
 	float xs[4];
 	float ys[4];
-	float us[4];
-	float vs[4];
-	float cf[4];
+	float us[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+	float vs[4] = { 0.0f, 1.0f, 1.0f, 0.0f };
 	int i;
 
-	xs[0] = x + w*(-c-s);	us[0] = 0.0f;
-	xs[1] = x + w*(-c+s);	us[1] = 0.0f;
-	xs[2] = x + w*(+c+s);	us[2] = 1.0f;
-	xs[3] = x + w*(+c-s);	us[3] = 1.0f;
+	xs[0] = x + w*(-c - s);
+	xs[1] = x + w*(-c + s);
+	xs[2] = x + w*(+c + s);
+	xs[3] = x + w*(+c - s);
 
-	ys[0] = y + h*(-c+s);	vs[0] = 0.0f;
-	ys[1] = y + h*(+c+s);	vs[1] = 1.0f;
-	ys[2] = y + h*(+c-s);	vs[2] = 1.0f;
-	ys[3] = y + h*(-c-s);	vs[3] = 0.0f;
+	ys[0] = y + h*(-c + s);
+	ys[1] = y + h*(+c + s);
+	ys[2] = y + h*(+c - s);
+	ys[3] = y + h*(-c - s);
 
-	// No clipping, just culling
-	if(xs[0] < 0.0f && xs[1] < 0.0f && xs[2] < 0.0f && xs[3] < 0.0f) return;
-	if(ys[0] < 0.0f && ys[1] < 0.0f && ys[2] < 0.0f && ys[3] < 0.0f) return;
-	if(xs[0] > SCREEN_WIDTH && xs[1] > SCREEN_WIDTH &&
-	   xs[2] > SCREEN_WIDTH && xs[3] > SCREEN_WIDTH) return;
-	if(ys[0] > SCREEN_HEIGHT && ys[1] > SCREEN_HEIGHT &&
-	   ys[2] > SCREEN_HEIGHT && ys[3] > SCREEN_HEIGHT) return;
-
-	// Colour factors, cx/y is the direction in which colours change from rgb1 to rgb2
-	cf[0] = (cx*(-c-s) + cy*(-c+s))*0.5f + 0.5f;
-	cf[0] = Clamp(cf[0], 0.0f, 1.0f);
-	cf[1] = (cx*(-c+s) + cy*( c+s))*0.5f + 0.5f;
-	cf[1] = Clamp(cf[1], 0.0f, 1.0f);
-	cf[2] = (cx*( c+s) + cy*( c-s))*0.5f + 0.5f;
-	cf[2] = Clamp(cf[2], 0.0f, 1.0f);
-	cf[3] = (cx*( c-s) + cy*(-c-s))*0.5f + 0.5f;
-	cf[3] = Clamp(cf[3], 0.0f, 1.0f);
+	if (xs[0] < 0.0f && xs[1] < 0.0f && xs[2] < 0.0f && xs[3] < 0.0f) return;
+	if (ys[0] < 0.0f && ys[1] < 0.0f && ys[2] < 0.0f && ys[3] < 0.0f) return;
+	if (xs[0] > SCREEN_WIDTH && xs[1] > SCREEN_WIDTH && xs[2] > SCREEN_WIDTH && xs[3] > SCREEN_WIDTH) return;
+	if (ys[0] > SCREEN_HEIGHT && ys[1] > SCREEN_HEIGHT && ys[2] > SCREEN_HEIGHT && ys[3] > SCREEN_HEIGHT) return;
 
 	float screenz = m_f2DNearScreenZ +
-		(z-CDraw::GetNearClipZ())*(m_f2DFarScreenZ-m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
-		((CDraw::GetFarClipZ()-CDraw::GetNearClipZ())*z);
+		(z - CDraw::GetNearClipZ())*(m_f2DFarScreenZ - m_f2DNearScreenZ)*CDraw::GetFarClipZ() /
+		((CDraw::GetFarClipZ() - CDraw::GetNearClipZ())*z);
 
-	RwIm2DVertex *vert = &SpriteBufferVerts[nSpriteBufferIndex*6];
+	RwIm2DVertex *vert = &SpriteBufferVerts[nSpriteBufferIndex * 6];
 	static int indices[6] = { 0, 1, 2, 3, 0, 2 };
-	for(i = 0; i < 6; i++){
+	for (i = 0; i < 6; i++) {
 		RwIm2DVertexSetScreenX(&vert[i], xs[indices[i]]);
 		RwIm2DVertexSetScreenY(&vert[i], ys[indices[i]]);
 		RwIm2DVertexSetScreenZ(&vert[i], screenz);
 		RwIm2DVertexSetCameraZ(&vert[i], z);
 		RwIm2DVertexSetRecipCameraZ(&vert[i], recipz);
-		RwIm2DVertexSetIntRGBA(&vert[i],
-			r1*cf[indices[i]] + r2*(1.0f - cf[indices[i]]),
-			g1*cf[indices[i]] + g2*(1.0f - cf[indices[i]]),
-			b1*cf[indices[i]] + b2*(1.0f - cf[indices[i]]),
-			a);
+		// CPU Math Optimization: Aniquilada la interpolación compleja de dos colores,
+		// se usa color sólido de la luz primaria.
+		RwIm2DVertexSetIntRGBA(&vert[i], r1, g1, b1, a);
 		RwIm2DVertexSetU(&vert[i], us[indices[i]], recipz);
 		RwIm2DVertexSetV(&vert[i], vs[indices[i]], recipz);
 	}
 	nSpriteBufferIndex++;
-	if(nSpriteBufferIndex >= SPRITEBUFFERSIZE)
+	if (nSpriteBufferIndex >= SPRITEBUFFERSIZE)
 		FlushSpriteBuffer();
 }
 
@@ -442,7 +389,7 @@ void
 CSprite::Set6Vertices2D(RwIm2DVertex *verts, const CRect &r, const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3)
 {
 	float screenz, recipz;
-	float z = RwCameraGetNearClipPlane(Scene.camera);	// not done by game
+	float z = RwCameraGetNearClipPlane(Scene.camera);
 
 	screenz = m_f2DNearScreenZ;
 	recipz = m_fRecipNearClipPlane;
@@ -504,10 +451,10 @@ CSprite::Set6Vertices2D(RwIm2DVertex *verts, const CRect &r, const CRGBA &c0, co
 
 void
 CSprite::Set6Vertices2D(RwIm2DVertex *verts, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4,
-		const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3)
+	const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3)
 {
 	float screenz, recipz;
-	float z = RwCameraGetNearClipPlane(Scene.camera);	// not done by game
+	float z = RwCameraGetNearClipPlane(Scene.camera);
 
 	screenz = m_f2DNearScreenZ;
 	recipz = m_fRecipNearClipPlane;
@@ -575,7 +522,7 @@ CSprite::RenderBufferedOneXLUSprite2D(float x, float y, float w, float h, const 
 	CRect rect(x - w, y - h, x + h, y + h);
 	Set6Vertices2D(&SpriteBufferVerts[6 * nSpriteBufferIndex], rect, col, col, col, col);
 	nSpriteBufferIndex++;
-	if(nSpriteBufferIndex >= SPRITEBUFFERSIZE)
+	if (nSpriteBufferIndex >= SPRITEBUFFERSIZE)
 		FlushSpriteBuffer();
 }
 
@@ -598,6 +545,6 @@ CSprite::RenderBufferedOneXLUSprite2D_Rotate_Dimension(float x, float y, float w
 		y + c*h + s*w,
 		col, col, col, col);
 	nSpriteBufferIndex++;
-	if(nSpriteBufferIndex >= SPRITEBUFFERSIZE)
+	if (nSpriteBufferIndex >= SPRITEBUFFERSIZE)
 		FlushSpriteBuffer();
 }

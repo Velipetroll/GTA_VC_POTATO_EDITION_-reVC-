@@ -23,11 +23,11 @@ uint8 CDraw::FadeBlue;
 #ifdef PROPER_SCALING	
 bool CDraw::ms_bProperScaling = true;
 #endif
-#ifdef  FIX_RADAR
-bool CDraw::ms_bFixRadar = true;	
+#ifdef FIX_RADAR
+bool CDraw::ms_bFixRadar = true;
 #endif
 #ifdef FIX_SPRITES
-bool CDraw::ms_bFixSprites = true;	
+bool CDraw::ms_bFixSprites = true;
 #endif
 
 #ifdef ASPECT_RATIO_SCALE
@@ -36,18 +36,19 @@ FindAspectRatio(void)
 {
 	switch (FrontEndMenuManager.m_PrefsUseWideScreen) {
 	case AR_AUTO:
-		return SCREEN_WIDTH / SCREEN_HEIGHT;
+		return SCREEN_WIDTH / (float)SCREEN_HEIGHT;
 	default:
+		// OPTIMIZACIÓN: Divisiones pre-calculadas para no asfixiar la FPU
 	case AR_4_3:
-		return 4.0f / 3.0f;
+		return 1.3333333f;
 	case AR_5_4:
-		return 5.0f / 4.0f;
+		return 1.25f;
 	case AR_16_10:
-		return 16.0f / 10.0f;
+		return 1.6f;
 	case AR_16_9:
-		return 16.0f / 9.0f;
+		return 1.7777777f;
 	case AR_21_9:
-		return 21.0f / 9.0f;
+		return 2.3333333f;
 	};
 }
 #endif
@@ -57,39 +58,35 @@ CDraw::CalculateAspectRatio(void)
 {
 #ifdef ASPECT_RATIO_SCALE
 	if (TheCamera.m_WideScreenOn)
-		CDraw::ms_fAspectRatio = (5.f / 3.f) * FindAspectRatio() / (16.f / 9.f); // It's used on theatrical showings according to Wiki
+		CDraw::ms_fAspectRatio = 1.6666666f * FindAspectRatio() * 0.5625f;
 	else
 		CDraw::ms_fAspectRatio = FindAspectRatio();
 #else
-	if(FrontEndMenuManager.m_PrefsUseWideScreen) {
+	if (FrontEndMenuManager.m_PrefsUseWideScreen) {
 		if (TheCamera.m_WideScreenOn)
-			CDraw::ms_fAspectRatio = 5.f / 3.f; // It's used on theatrical showings according to Wiki
+			CDraw::ms_fAspectRatio = 1.6666666f;
 		else
-			CDraw::ms_fAspectRatio = 16.f / 9.f;
-	} else if (TheCamera.m_WideScreenOn) {
-		CDraw::ms_fAspectRatio = 5.f/4.f;
-	} else {
-		CDraw::ms_fAspectRatio = 4.f/3.f;
+			CDraw::ms_fAspectRatio = 1.7777777f;
+	}
+	else if (TheCamera.m_WideScreenOn) {
+		CDraw::ms_fAspectRatio = 1.25f;
+	}
+	else {
+		CDraw::ms_fAspectRatio = 1.3333333f;
 	}
 #endif
 	return CDraw::ms_fAspectRatio;
 }
 
 #ifdef ASPECT_RATIO_SCALE
-// convert a 4:3 hFOV to vFOV,
-// then convert that vFOV to hFOV for our aspect ratio,
-// i.e. HOR+
 float
 CDraw::ConvertFOV(float hfov)
 {
-	// => tan(hFOV/2) = tan(vFOV/2)*aspectRatio
-	// => tan(vFOV/2) = tan(hFOV/2)/aspectRatio
-	float ar1 = DEFAULT_ASPECT_RATIO;
-	float ar2 = GetAspectRatio();
-	hfov = DEGTORAD(hfov);
-	float vfov = Atan(tan(hfov/2) / ar1) *2;
-	hfov = Atan(tan(vfov/2) * ar2) *2;
-	return RADTODEG(hfov);
+	// OPTIMIZACIÓN EXTREMA: Muerte a la trigonometría.
+	// En lugar de usar Tangentes y Arcotangentes cruzadas, usamos una 
+	// regla de aproximación lineal súper barata.
+	// 0.75f equivale a dividir por el Aspect Ratio base (4/3).
+	return hfov * (GetAspectRatio() * 0.75f);
 }
 #endif
 
@@ -108,6 +105,7 @@ CDraw::SetFOV(float fov)
 #ifdef PROPER_SCALING	
 float CDraw::ScaleY(float y)
 {
-	return ms_bProperScaling ? y : y * ((float)DEFAULT_SCREEN_HEIGHT/SCREEN_HEIGHT_NTSC);
+	// Multiplicador pre-calculado
+	return ms_bProperScaling ? y : y * 1.0666666f;
 }
-#endif 
+#endif

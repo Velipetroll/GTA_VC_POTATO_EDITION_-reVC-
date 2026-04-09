@@ -17,7 +17,6 @@ RwIm2DVertex CSprite2d::maVertices[8];
 void
 CSprite2d::SetRecipNearClip(void)
 {
-	// Used but empty in VC, instead they set in InitPerFrame. Isn't that great?
 }
 
 void
@@ -27,14 +26,12 @@ CSprite2d::InitPerFrame(void)
 	nextBufferIndex = 0;
 	RecipNearClip = 1.0f / RwCameraGetNearClipPlane(Scene.camera);
 	NearScreenZ = RwIm2DGetNearScreenZ();
-	// not original but you're supposed to set camera z too
-	// wrapping all this in FIX_BUGS is too ugly
 	NearCamZ = RwCameraGetNearClipPlane(Scene.camera);
 }
 void
 CSprite2d::Delete(void)
 {
-	if(m_pTexture){
+	if (m_pTexture) {
 		RwTextureDestroy(m_pTexture);
 		m_pTexture = nil;
 	}
@@ -44,7 +41,7 @@ void
 CSprite2d::SetTexture(const char *name)
 {
 	Delete();
-	if(name)
+	if (name)
 		m_pTexture = RwTextureRead(name, nil);
 }
 
@@ -52,21 +49,21 @@ void
 CSprite2d::SetTexture(const char *name, const char *mask)
 {
 	Delete();
-	if(name)
+	if (name)
 		m_pTexture = RwTextureRead(name, mask);
 }
 
 void
 CSprite2d::SetAddressing(RwTextureAddressMode addr)
 {
-	if(m_pTexture)
+	if (m_pTexture)
 		RwTextureSetAddressing(m_pTexture, addr);
 }
 
 void
 CSprite2d::SetRenderState(void)
 {
-	if(m_pTexture)
+	if (m_pTexture)
 		RwRenderStateSet(rwRENDERSTATETEXTURERASTER, RwTextureGetRaster(m_pTexture));
 	else
 		RwRenderStateSet(rwRENDERSTATETEXTURERASTER, nil);
@@ -120,7 +117,8 @@ CSprite2d::Draw(float x1, float y1, float x2, float y2, float x3, float y3, floa
 void
 CSprite2d::SetVertices(const CRect &r, const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3)
 {
-	float offset = 1.0f/1024.0f;
+	// MICRO-OPTIMIZACIÓN: División 1.0f/1024.0f pre-calculada para salvar ciclos de FPU
+	const float offset = 0.0009765625f;
 
 	// This is what we draw:
 	// 0---1
@@ -132,8 +130,8 @@ CSprite2d::SetVertices(const CRect &r, const CRGBA &c0, const CRGBA &c1, const C
 	RwIm2DVertexSetCameraZ(&maVertices[0], NearCamZ);
 	RwIm2DVertexSetRecipCameraZ(&maVertices[0], RecipNearClip);
 	RwIm2DVertexSetIntRGBA(&maVertices[0], c2.r, c2.g, c2.b, c2.a);
-	RwIm2DVertexSetU(&maVertices[0], 0.0f+offset, RecipNearClip);
-	RwIm2DVertexSetV(&maVertices[0], 0.0f+offset, RecipNearClip);
+	RwIm2DVertexSetU(&maVertices[0], 0.0f + offset, RecipNearClip);
+	RwIm2DVertexSetV(&maVertices[0], 0.0f + offset, RecipNearClip);
 
 	RwIm2DVertexSetScreenX(&maVertices[1], r.right);
 	RwIm2DVertexSetScreenY(&maVertices[1], r.top);
@@ -141,8 +139,8 @@ CSprite2d::SetVertices(const CRect &r, const CRGBA &c0, const CRGBA &c1, const C
 	RwIm2DVertexSetCameraZ(&maVertices[1], NearCamZ);
 	RwIm2DVertexSetRecipCameraZ(&maVertices[1], RecipNearClip);
 	RwIm2DVertexSetIntRGBA(&maVertices[1], c3.r, c3.g, c3.b, c3.a);
-	RwIm2DVertexSetU(&maVertices[1], 1.0f+offset, RecipNearClip);
-	RwIm2DVertexSetV(&maVertices[1], 0.0f+offset, RecipNearClip);
+	RwIm2DVertexSetU(&maVertices[1], 1.0f + offset, RecipNearClip);
+	RwIm2DVertexSetV(&maVertices[1], 0.0f + offset, RecipNearClip);
 
 	RwIm2DVertexSetScreenX(&maVertices[2], r.right);
 	RwIm2DVertexSetScreenY(&maVertices[2], r.bottom);
@@ -150,8 +148,8 @@ CSprite2d::SetVertices(const CRect &r, const CRGBA &c0, const CRGBA &c1, const C
 	RwIm2DVertexSetCameraZ(&maVertices[2], NearCamZ);
 	RwIm2DVertexSetRecipCameraZ(&maVertices[2], RecipNearClip);
 	RwIm2DVertexSetIntRGBA(&maVertices[2], c1.r, c1.g, c1.b, c1.a);
-	RwIm2DVertexSetU(&maVertices[2], 1.0f+offset, RecipNearClip);
-	RwIm2DVertexSetV(&maVertices[2], 1.0f+offset, RecipNearClip);
+	RwIm2DVertexSetU(&maVertices[2], 1.0f + offset, RecipNearClip);
+	RwIm2DVertexSetV(&maVertices[2], 1.0f + offset, RecipNearClip);
 
 	RwIm2DVertexSetScreenX(&maVertices[3], r.left);
 	RwIm2DVertexSetScreenY(&maVertices[3], r.bottom);
@@ -159,18 +157,14 @@ CSprite2d::SetVertices(const CRect &r, const CRGBA &c0, const CRGBA &c1, const C
 	RwIm2DVertexSetCameraZ(&maVertices[3], NearCamZ);
 	RwIm2DVertexSetRecipCameraZ(&maVertices[3], RecipNearClip);
 	RwIm2DVertexSetIntRGBA(&maVertices[3], c0.r, c0.g, c0.b, c0.a);
-	RwIm2DVertexSetU(&maVertices[3], 0.0f+offset, RecipNearClip);
-	RwIm2DVertexSetV(&maVertices[3], 1.0f+offset, RecipNearClip);
+	RwIm2DVertexSetU(&maVertices[3], 0.0f + offset, RecipNearClip);
+	RwIm2DVertexSetV(&maVertices[3], 1.0f + offset, RecipNearClip);
 }
 
 void
 CSprite2d::SetVertices(const CRect &r, const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3,
 	float u0, float v0, float u1, float v1, float u3, float v3, float u2, float v2)
 {
-	// This is what we draw:
-	// 0---1
-	// | / |
-	// 3---2
 	RwIm2DVertexSetScreenX(&maVertices[0], r.left);
 	RwIm2DVertexSetScreenY(&maVertices[0], r.top);
 	RwIm2DVertexSetScreenZ(&maVertices[0], NearScreenZ);
@@ -210,7 +204,7 @@ CSprite2d::SetVertices(const CRect &r, const CRGBA &c0, const CRGBA &c1, const C
 
 void
 CSprite2d::SetVertices(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4,
-		const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3)
+	const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3)
 {
 	RwIm2DVertexSetScreenX(&maVertices[0], x3);
 	RwIm2DVertexSetScreenY(&maVertices[0], y3);
@@ -254,15 +248,15 @@ CSprite2d::SetVertices(int n, float *positions, float *uvs, const CRGBA &col)
 {
 	int i;
 
-	for(i = 0; i < n; i++){
-		RwIm2DVertexSetScreenX(&maVertices[i], positions[i*2 + 0]);
-		RwIm2DVertexSetScreenY(&maVertices[i], positions[i*2 + 1]);
+	for (i = 0; i < n; i++) {
+		RwIm2DVertexSetScreenX(&maVertices[i], positions[i * 2 + 0]);
+		RwIm2DVertexSetScreenY(&maVertices[i], positions[i * 2 + 1]);
 		RwIm2DVertexSetScreenZ(&maVertices[i], NearScreenZ + 0.0001f);
 		RwIm2DVertexSetCameraZ(&maVertices[i], NearCamZ);
 		RwIm2DVertexSetRecipCameraZ(&maVertices[i], RecipNearClip);
 		RwIm2DVertexSetIntRGBA(&maVertices[i], col.r, col.g, col.b, col.a);
-		RwIm2DVertexSetU(&maVertices[i], uvs[i*2 + 0], RecipNearClip);
-		RwIm2DVertexSetV(&maVertices[i], uvs[i*2 + 1], RecipNearClip);
+		RwIm2DVertexSetU(&maVertices[i], uvs[i * 2 + 0], RecipNearClip);
+		RwIm2DVertexSetV(&maVertices[i], uvs[i * 2 + 1], RecipNearClip);
 	}
 }
 
@@ -271,9 +265,9 @@ CSprite2d::SetMaskVertices(int n, float *positions)
 {
 	int i;
 
-	for(i = 0; i < n; i++){
-		RwIm2DVertexSetScreenX(&maVertices[i], positions[i*2 + 0]);
-		RwIm2DVertexSetScreenY(&maVertices[i], positions[i*2 + 1]);
+	for (i = 0; i < n; i++) {
+		RwIm2DVertexSetScreenX(&maVertices[i], positions[i * 2 + 0]);
+		RwIm2DVertexSetScreenY(&maVertices[i], positions[i * 2 + 1]);
 		RwIm2DVertexSetScreenZ(&maVertices[i], NearScreenZ);
 		RwIm2DVertexSetCameraZ(&maVertices[i], NearCamZ);
 		RwIm2DVertexSetRecipCameraZ(&maVertices[i], RecipNearClip);
@@ -287,7 +281,7 @@ CSprite2d::SetMaskVertices(int n, float *positions)
 
 void
 CSprite2d::SetVertices(RwIm2DVertex *verts, const CRect &r, const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3,
-		float u0, float v0, float u1, float v1, float u3, float v3, float u2, float v2)
+	float u0, float v0, float u1, float v1, float u3, float v3, float u2, float v2)
 {
 	RwIm2DVertexSetScreenX(&verts[0], r.left);
 	RwIm2DVertexSetScreenY(&verts[0], r.top);
@@ -371,7 +365,7 @@ CSprite2d::DrawRectXLU(const CRect &r, const CRGBA &c0, const CRGBA &c1, const C
 
 void
 CSprite2d::DrawAnyRect(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4,
-		const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3)
+	const CRGBA &c0, const CRGBA &c1, const CRGBA &c2, const CRGBA &c3)
 {
 	SetVertices(x1, y1, x2, y2, x3, y3, x4, y4, c0, c1, c2, c3);
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, nil);
@@ -419,7 +413,7 @@ CSprite2d::AddToBuffer(const CRect &r, const CRGBA &c, float u0, float v0, float
 bool
 CSprite2d::IsVertexBufferFull()
 {
-	return (nextBufferVertex > TEMPBUFFERVERTSIZE-128-4 || nextBufferIndex > ARRAY_SIZE(TempBufferRenderIndexList)-6);
+	return (nextBufferVertex > TEMPBUFFERVERTSIZE - 128 - 4 || nextBufferIndex > ARRAY_SIZE(TempBufferRenderIndexList) - 6);
 }
 
 void
