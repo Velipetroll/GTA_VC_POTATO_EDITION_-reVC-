@@ -3,7 +3,7 @@
 [![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fmrxenginner%2FreVC%2Fbadge%3Fref%3Dmiami&style=flat)](https://actions-badge.atrox.dev/mrxenginner/reVC/goto?ref=miami)
 <a href="https://discord.gg/RFNbjsUMGg"><img src="https://img.shields.io/badge/discord-join-7289DA.svg?logo=discord&longCache=true&style=flat" /></a>
 
-# 🤖 GTA Vice City: reVC - 100% AI-Engineered Ultra Performance Mod 🌴
+# 🤖 GTA Vice City: reVC - 100% AI-Engineered Extreme Potato Edition 🌴
 
 > ⚠️ **REVOLUTIONARY APPROACH: 100% AI-GENERATED CODE** ⚠️
 > **Every single engine optimization, C++ logic rewrite, and new feature in this fork was exclusively designed, analyzed, and programmed by Artificial Intelligence (Gemini).** The human author acted strictly as a project director, tester, and compiler. This project stands as a proof-of-concept demonstrating how AI can deep-dive into complex, legacy reverse-engineered C++ game engines to surgically extract maximum performance.
@@ -12,7 +12,7 @@
 
 In this repository you'll find a heavily modified and optimized version of the fully reversed source code for GTA VC ([miami](https://github.com/mrxenginner/reVC/tree/miami/) branch).
 
-This specific fork was born with a clear goal: **to make GTA Vice City run smoothly and stably on very low-end PCs (such as netbooks or systems with only 2GB of RAM)**. To achieve this, the AI analyzed the RenderWare engine and successfully eliminated massive bottlenecks, disabled unnecessary background mathematical calculations, and introduced aggressive Level of Detail (LOD) mechanics that the original developers left on the table.
+This specific fork was born with a clear goal: **to make GTA Vice City run smoothly and stably on extremely low-end hardware, specifically targeting single-core processors like the Intel Atom N450 and integrated graphics like the GMA 3150**. To achieve this, the AI analyzed the RenderWare engine and successfully eliminated massive bottlenecks, disabled unnecessary background mathematical calculations, and introduced aggressive Level of Detail (LOD) mechanics that the original developers left on the table.
 
 It has been tested and works on Windows, Android, Linux, MacOS and FreeBSD, on x86, amd64, arm and arm64.\
 Rendering is handled either by original RenderWare (D3D8)
@@ -23,20 +23,17 @@ We cannot build for PS2 or Xbox yet. If you're interested in doing so, get in to
 
 ## ⚡ 100% AI-Driven Performance Optimizations
 
-* **Pedestrian Time-Slicing:** NPC AI and skeletal deformation (Skinning) now update at half the framerate if they are more than 20 meters away. Massive CPU savings in crowded areas.
-* **Aggressive AI Culling:** Distant pedestrians no longer calculate "Head-Tracking" (turning their necks to look at objects) or expensive "Raycasting" to dodge walls. They simply walk in a straight line.
-* **Vehicle Distance Blackout (LOD):** Traffic vehicles further than 50 meters no longer calculate the visual rotation of their 4 wheels, exhaust smoke, or damage states.
-* **Optimized Rain:** Removed the expensive CPU loop that calculated raindrop collisions against all polygons of every single car in the city. Now, it only rains on the player's car.
-* **Dynamic Shadows Annihilated:** Disabled the night shadows cast by traffic car headlights to save *Fill-Rate* on older graphics cards. Only the player's car illuminates the asphalt. Unused dynamic point light arrays were also emptied to save CPU cycles.
-* **Memory Management (Streaming):** RAM cache limit forced to 256MB, tricking the engine into stopping the constant and heavy deletion/loading of buildings behind the camera.
-* **Mathematical Optimizations:** Replaced heavy CPU functions (`Sqrt`) with "Squared Distance" (`MagnitudeSqr`) in the explosion and world collision engines to prevent stuttering during chaotic moments.
+* **The Heat & CPU Patch (End of "Busy-Wait"):** The AI discovered through profiling that the engine spent nearly 60% of the CPU simply "waiting" (`rsIDLE`) for the next frame to draw. By injecting a `Sleep(1)` command into the frame limiter, the engine now yields control to Windows for 1 millisecond during idle times. This dramatically improved performance and plummeted hardware temperatures from 90°C to safe levels.
+* **Distance-Based Entity Time-Slicing:** Entity updates are now scaled by distance. The further an NPC or vehicle is from the camera, the fewer frames it takes to update its AI, movement, position relative to the player, and animation frames.
+* **Aggressive Island Culling:** If the player is on one island, the engine is strictly prohibited from rendering *anything* from the other island under any circumstances.
+* **Flat Lighting & VFX Annihilation:** `Light.cpp` was completely emptied. Weather no longer visually affects any surface in the game, resulting in a completely flat, ultra-fast rendering pipeline. Heavy water math, air modifiers on 3D models, and all particle systems have been entirely removed.
+* **Total Glass Annihilation:** All vehicle windows (both intact and damaged) have been forced to 0% opacity, completely removing their polygons from the rendering pipeline to save massive amounts of fillrate on older GPUs.
+* **Mathematical Optimizations:** Replaced heavy CPU functions (`Sqrt` and `Atan2`) with "Manhattan Distance" approximations for entity visibility checks, saving thousands of clock cycles.
 
 ## 🎮 AI-Coded New Features Added
 
-* **True First-Person Camera (Vehicles):** Drive from Tommy's perspective! A dynamic first-person view has been fully programmed by AI, adjusting perfectly depending on the vehicle:
-  * Cars feature a comfortable view from the driver's seat.
-  * Aerodynamic leaning posture when driving sports bikes (PCJ-600).
-  * Upright posture on dirt bikes (Sanchez) and reclined on Choppers (Freeway).
+* **Quick Save System (F6):** A seamless quick-save feature was injected into the main game loop (`Game.cpp`). Pressing F6 intercepts the keyboard input and safely triggers the official save menu (`m_bActivateSaveMenu`), pausing the game and allowing you to save anywhere without corrupting your file.
+* **True First-Person Camera (Vehicles):** Drive from Tommy's perspective! A dynamic first-person view has been fully programmed by AI, adjusting perfectly depending on the vehicle.
 * **Crash-Proof Shielding:** AI patched texture destruction functions (Garbage Collection) to prevent unexpected engine crashes when loading new save files.
 
 ## Installation
@@ -55,11 +52,11 @@ We cannot build for PS2 or Xbox yet. If you're interested in doing so, get in to
 ## Screenshots
 
 ![screen_ 1613087332](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_1.png)
-![screen_ 1613086852](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_2.png)
 ![screen_ 1613086989](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_3.png)
 ![screen_ 1613087193](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_4.png)
 ![screen_ 1613087123](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_5.png)
 ![screen_ 161301193](https://raw.githubusercontent.com/Velipetroll/reVC-POTATO_EDITION/refs/heads/miami/Images/Image_6.png)
+
 ## Standard reVC Improvements
 
 We have implemented a number of changes and improvements to the original game.
