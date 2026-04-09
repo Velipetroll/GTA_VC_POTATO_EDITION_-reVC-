@@ -49,23 +49,24 @@ CPostFX::InitOnce(void)
 void
 CPostFX::Open(RwCamera *cam)
 {
-	if(pFrontBuffer)
+	if (pFrontBuffer)
 		Close();
 
-	uint32 width  = Pow(2.0f, int32(log2(RwRasterGetWidth (RwCameraGetRaster(cam))))+1);
-	uint32 height = Pow(2.0f, int32(log2(RwRasterGetHeight(RwCameraGetRaster(cam))))+1);
-	uint32 depth  = RwRasterGetDepth(RwCameraGetRaster(cam));
+	uint32 width = Pow(2.0f, int32(log2(RwRasterGetWidth(RwCameraGetRaster(cam)))) + 1);
+	uint32 height = Pow(2.0f, int32(log2(RwRasterGetHeight(RwCameraGetRaster(cam)))) + 1);
+	uint32 depth = RwRasterGetDepth(RwCameraGetRaster(cam));
 	pFrontBuffer = RwRasterCreate(width, height, depth, rwRASTERTYPECAMERATEXTURE);
 	pBackBuffer = RwRasterCreate(width, height, depth, rwRASTERTYPECAMERATEXTURE);
 	bJustInitialised = true;
 
 	float zero, xmax, ymax;
 
-	if(RwRasterGetDepth(RwCameraGetRaster(cam)) == 16){
+	if (RwRasterGetDepth(RwCameraGetRaster(cam)) == 16) {
 		zero = HALFPX;
 		xmax = width + HALFPX;
 		ymax = height + HALFPX;
-	}else{
+	}
+	else {
 		zero = -HALFPX;
 		xmax = width - HALFPX;
 		ymax = height - HALFPX;
@@ -75,36 +76,36 @@ CPostFX::Open(RwCamera *cam)
 	RwIm2DVertexSetScreenY(&Vertex[0], zero);
 	RwIm2DVertexSetScreenZ(&Vertex[0], RwIm2DGetNearScreenZ());
 	RwIm2DVertexSetCameraZ(&Vertex[0], RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetRecipCameraZ(&Vertex[0], 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetU(&Vertex[0], 0.0f, 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetV(&Vertex[0], 0.0f, 1.0f/RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&Vertex[0], 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetU(&Vertex[0], 0.0f, 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetV(&Vertex[0], 0.0f, 1.0f / RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetIntRGBA(&Vertex[0], 255, 255, 255, 255);
 
 	RwIm2DVertexSetScreenX(&Vertex[1], zero);
 	RwIm2DVertexSetScreenY(&Vertex[1], ymax);
 	RwIm2DVertexSetScreenZ(&Vertex[1], RwIm2DGetNearScreenZ());
 	RwIm2DVertexSetCameraZ(&Vertex[1], RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetRecipCameraZ(&Vertex[1], 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetU(&Vertex[1], 0.0f, 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetV(&Vertex[1], 1.0f, 1.0f/RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&Vertex[1], 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetU(&Vertex[1], 0.0f, 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetV(&Vertex[1], 1.0f, 1.0f / RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetIntRGBA(&Vertex[1], 255, 255, 255, 255);
 
 	RwIm2DVertexSetScreenX(&Vertex[2], xmax);
 	RwIm2DVertexSetScreenY(&Vertex[2], ymax);
 	RwIm2DVertexSetScreenZ(&Vertex[2], RwIm2DGetNearScreenZ());
 	RwIm2DVertexSetCameraZ(&Vertex[2], RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetRecipCameraZ(&Vertex[2], 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetU(&Vertex[2], 1.0f, 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetV(&Vertex[2], 1.0f, 1.0f/RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&Vertex[2], 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetU(&Vertex[2], 1.0f, 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetV(&Vertex[2], 1.0f, 1.0f / RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetIntRGBA(&Vertex[2], 255, 255, 255, 255);
 
 	RwIm2DVertexSetScreenX(&Vertex[3], xmax);
 	RwIm2DVertexSetScreenY(&Vertex[3], zero);
 	RwIm2DVertexSetScreenZ(&Vertex[3], RwIm2DGetNearScreenZ());
 	RwIm2DVertexSetCameraZ(&Vertex[3], RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetRecipCameraZ(&Vertex[3], 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetU(&Vertex[3], 1.0f, 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetV(&Vertex[3], 0.0f, 1.0f/RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&Vertex[3], 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetU(&Vertex[3], 1.0f, 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetV(&Vertex[3], 0.0f, 1.0f / RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetIntRGBA(&Vertex[3], 255, 255, 255, 255);
 
 
@@ -112,36 +113,36 @@ CPostFX::Open(RwCamera *cam)
 	RwIm2DVertexSetScreenY(&Vertex2[0], zero + 2.0f);
 	RwIm2DVertexSetScreenZ(&Vertex2[0], RwIm2DGetNearScreenZ());
 	RwIm2DVertexSetCameraZ(&Vertex2[0], RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetRecipCameraZ(&Vertex2[0], 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetU(&Vertex2[0], 0.0f, 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetV(&Vertex2[0], 0.0f, 1.0f/RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&Vertex2[0], 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetU(&Vertex2[0], 0.0f, 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetV(&Vertex2[0], 0.0f, 1.0f / RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetIntRGBA(&Vertex2[0], 255, 255, 255, 255);
 
 	RwIm2DVertexSetScreenX(&Vertex2[1], 2.0f);
 	RwIm2DVertexSetScreenY(&Vertex2[1], ymax + 2.0f);
 	RwIm2DVertexSetScreenZ(&Vertex2[1], RwIm2DGetNearScreenZ());
 	RwIm2DVertexSetCameraZ(&Vertex2[1], RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetRecipCameraZ(&Vertex2[1], 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetU(&Vertex2[1], 0.0f, 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetV(&Vertex2[1], 1.0f, 1.0f/RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&Vertex2[1], 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetU(&Vertex2[1], 0.0f, 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetV(&Vertex2[1], 1.0f, 1.0f / RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetIntRGBA(&Vertex2[1], 255, 255, 255, 255);
 
 	RwIm2DVertexSetScreenX(&Vertex2[2], xmax + 2.0f);
 	RwIm2DVertexSetScreenY(&Vertex2[2], ymax + 2.0f);
 	RwIm2DVertexSetScreenZ(&Vertex2[2], RwIm2DGetNearScreenZ());
 	RwIm2DVertexSetCameraZ(&Vertex2[2], RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetRecipCameraZ(&Vertex2[2], 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetU(&Vertex2[2], 1.0f, 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetV(&Vertex2[2], 1.0f, 1.0f/RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&Vertex2[2], 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetU(&Vertex2[2], 1.0f, 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetV(&Vertex2[2], 1.0f, 1.0f / RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetIntRGBA(&Vertex2[2], 255, 255, 255, 255);
 
 	RwIm2DVertexSetScreenX(&Vertex2[3], xmax + 2.0f);
 	RwIm2DVertexSetScreenY(&Vertex2[3], zero + 2.0f);
 	RwIm2DVertexSetScreenZ(&Vertex2[3], RwIm2DGetNearScreenZ());
 	RwIm2DVertexSetCameraZ(&Vertex2[3], RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetRecipCameraZ(&Vertex2[3], 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetU(&Vertex2[3], 1.0f, 1.0f/RwCameraGetNearClipPlane(cam));
-	RwIm2DVertexSetV(&Vertex2[3], 0.0f, 1.0f/RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&Vertex2[3], 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetU(&Vertex2[3], 1.0f, 1.0f / RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetV(&Vertex2[3], 0.0f, 1.0f / RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetIntRGBA(&Vertex2[3], 255, 255, 255, 255);
 
 
@@ -157,19 +158,19 @@ CPostFX::Open(RwCamera *cam)
 	{
 #include "shaders/obj/im2d_vert.inc"
 #include "shaders/obj/colourfilterVC_frag.inc"
-	const char *vs[] = { shaderDecl, header_vert_src, im2d_vert_src, nil };
-	const char *fs[] = { shaderDecl, header_frag_src, colourfilterVC_frag_src, nil };
-	colourFilterVC = Shader::create(vs, fs);
-	assert(colourFilterVC);
+		const char *vs[] = { shaderDecl, header_vert_src, im2d_vert_src, nil };
+		const char *fs[] = { shaderDecl, header_frag_src, colourfilterVC_frag_src, nil };
+		colourFilterVC = Shader::create(vs, fs);
+		assert(colourFilterVC);
 	}
 
 	{
 #include "shaders/obj/im2d_vert.inc"
 #include "shaders/obj/contrast_frag.inc"
-	const char *vs[] = { shaderDecl, header_vert_src, im2d_vert_src, nil };
-	const char *fs[] = { shaderDecl, header_frag_src, contrast_frag_src, nil };
-	contrast = Shader::create(vs, fs);
-	assert(contrast);
+		const char *vs[] = { shaderDecl, header_vert_src, im2d_vert_src, nil };
+		const char *fs[] = { shaderDecl, header_frag_src, contrast_frag_src, nil };
+		contrast = Shader::create(vs, fs);
+		assert(contrast);
 	}
 
 #endif
@@ -178,30 +179,30 @@ CPostFX::Open(RwCamera *cam)
 void
 CPostFX::Close(void)
 {
-	if(pFrontBuffer){
+	if (pFrontBuffer) {
 		RwRasterDestroy(pFrontBuffer);
 		pFrontBuffer = nil;
 	}
-	if(pBackBuffer){
+	if (pBackBuffer) {
 		RwRasterDestroy(pBackBuffer);
 		pBackBuffer = nil;
 	}
 #ifdef RW_D3D9
-	if(colourfilterVC_PS){
+	if (colourfilterVC_PS) {
 		rw::d3d::destroyPixelShader(colourfilterVC_PS);
 		colourfilterVC_PS = nil;
 	}
-	if(contrast_PS){
+	if (contrast_PS) {
 		rw::d3d::destroyPixelShader(contrast_PS);
 		contrast_PS = nil;
 	}
 #endif
 #ifdef RW_OPENGL
-	if(colourFilterVC){
+	if (colourFilterVC) {
 		colourFilterVC->destroy();
 		colourFilterVC = nil;
 	}
-	if(contrast){
+	if (contrast) {
 		contrast->destroy();
 		contrast = nil;
 	}
@@ -214,14 +215,14 @@ CPostFX::RenderOverlayBlur(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pFrontBuffer);
 	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
 
-	RwIm2DVertexSetIntRGBA(&Vertex[0], r*2, g*2, b*2, 30);
-	RwIm2DVertexSetIntRGBA(&Vertex[1], r*2, g*2, b*2, 30);
-	RwIm2DVertexSetIntRGBA(&Vertex[2], r*2, g*2, b*2, 30);
-	RwIm2DVertexSetIntRGBA(&Vertex[3], r*2, g*2, b*2, 30);
-	RwIm2DVertexSetIntRGBA(&Vertex2[0], r*2, g*2, b*2, 30);
-	RwIm2DVertexSetIntRGBA(&Vertex2[1], r*2, g*2, b*2, 30);
-	RwIm2DVertexSetIntRGBA(&Vertex2[2], r*2, g*2, b*2, 30);
-	RwIm2DVertexSetIntRGBA(&Vertex2[3], r*2, g*2, b*2, 30);
+	RwIm2DVertexSetIntRGBA(&Vertex[0], r * 2, g * 2, b * 2, 30);
+	RwIm2DVertexSetIntRGBA(&Vertex[1], r * 2, g * 2, b * 2, 30);
+	RwIm2DVertexSetIntRGBA(&Vertex[2], r * 2, g * 2, b * 2, 30);
+	RwIm2DVertexSetIntRGBA(&Vertex[3], r * 2, g * 2, b * 2, 30);
+	RwIm2DVertexSetIntRGBA(&Vertex2[0], r * 2, g * 2, b * 2, 30);
+	RwIm2DVertexSetIntRGBA(&Vertex2[1], r * 2, g * 2, b * 2, 30);
+	RwIm2DVertexSetIntRGBA(&Vertex2[2], r * 2, g * 2, b * 2, 30);
+	RwIm2DVertexSetIntRGBA(&Vertex2[3], r * 2, g * 2, b * 2, 30);
 
 	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
 	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
@@ -268,14 +269,14 @@ CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 {
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pBackBuffer);
 
-	if(EffectSwitch == POSTFX_MOBILE){
+	if (EffectSwitch == POSTFX_MOBILE) {
 		float mult[3], add[3];
-		mult[0] = (r-64)/256.0f + 1.4f;
-		mult[1] = (g-64)/256.0f + 1.4f;
-		mult[2] = (b-64)/256.0f + 1.4f;
-		add[0] = r/1536.f - 0.05f;
-		add[1] = g/1536.f - 0.05f;
-		add[2] = b/1536.f - 0.05f;
+		mult[0] = (r - 64) / 256.0f + 1.4f;
+		mult[1] = (g - 64) / 256.0f + 1.4f;
+		mult[2] = (b - 64) / 256.0f + 1.4f;
+		add[0] = r / 1536.f - 0.05f;
+		add[1] = g / 1536.f - 0.05f;
+		add[2] = b / 1536.f - 0.05f;
 #ifdef RW_D3D9
 		rw::d3d::d3ddevice->SetPixelShaderConstantF(10, mult, 1);
 		rw::d3d::d3ddevice->SetPixelShaderConstantF(11, add, 1);
@@ -288,13 +289,14 @@ CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 		glUniform3fv(contrast->uniformLocations[u_contrastMult], 1, mult);
 		glUniform3fv(contrast->uniformLocations[u_contrastAdd], 1, add);
 #endif
-	}else{
+	}
+	else {
 		float f = Intensity;
 		float blurcolors[4];
-		blurcolors[0] = r*f/255.0f;
-		blurcolors[1] = g*f/255.0f;
-		blurcolors[2] = b*f/255.0f;
-		blurcolors[3] = 30/255.0f;
+		blurcolors[0] = r*f / 255.0f;
+		blurcolors[1] = g*f / 255.0f;
+		blurcolors[2] = b*f / 255.0f;
+		blurcolors[3] = 30 / 255.0f;
 #ifdef RW_D3D9
 		rw::d3d::d3ddevice->SetPixelShaderConstantF(10, blurcolors, 1);
 		rw::d3d::im2dOverridePS = colourfilterVC_PS;
@@ -317,7 +319,7 @@ CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 void
 CPostFX::RenderMotionBlur(RwCamera *cam, uint32 blur)
 {
-	if(blur == 0)
+	if (blur == 0)
 		return;
 
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pFrontBuffer);
@@ -337,13 +339,13 @@ bool
 CPostFX::NeedBackBuffer(void)
 {
 	// Current frame -- needed for non-blur effect
-	switch(EffectSwitch){
+	switch (EffectSwitch) {
 	case POSTFX_OFF:
 	case POSTFX_SIMPLE:
 		// no actual rendering here
 		return false;
 	case POSTFX_NORMAL:
-		if(MotionBlurOn)
+		if (MotionBlurOn)
 			return false;
 		else
 			return true;
@@ -357,18 +359,18 @@ bool
 CPostFX::NeedFrontBuffer(int32 type)
 {
 	// Last frame -- needed for motion blur
-	if(CMBlur::Drunkness > 0.0f)
+	if (CMBlur::Drunkness > 0.0f)
 		return true;
-	if(type == MOTION_BLUR_SNIPER)
+	if (type == MOTION_BLUR_SNIPER)
 		return true;
 
-	switch(EffectSwitch){
+	switch (EffectSwitch) {
 	case POSTFX_OFF:
 	case POSTFX_SIMPLE:
 		// no actual rendering here
 		return false;
 	case POSTFX_NORMAL:
-		if(MotionBlurOn)
+		if (MotionBlurOn)
 			return true;
 		else
 			return false;
@@ -391,12 +393,12 @@ CPostFX::Render(RwCamera *cam, uint32 red, uint32 green, uint32 blue, uint32 blu
 {
 	PUSH_RENDERGROUP("CPostFX::Render");
 
-	if(pFrontBuffer == nil)
+	if (pFrontBuffer == nil)
 		Open(cam);
 	assert(pFrontBuffer);
 	assert(pBackBuffer);
 
-	if(type == MOTION_BLUR_LIGHT_SCENE){
+	if (type == MOTION_BLUR_LIGHT_SCENE) {
 		SmoothColor(red, green, blue, blur);
 		red = AvgRed;
 		green = AvgGreen;
@@ -404,7 +406,7 @@ CPostFX::Render(RwCamera *cam, uint32 red, uint32 green, uint32 blue, uint32 blu
 		blur = AvgAlpha;
 	}
 
-	if(NeedBackBuffer())
+	if (NeedBackBuffer())
 		GetBackBuffer(cam);
 
 	DefinedState();
@@ -414,19 +416,21 @@ CPostFX::Render(RwCamera *cam, uint32 red, uint32 green, uint32 blue, uint32 blu
 	RwRenderStateSet(rwRENDERSTATEZTESTENABLE, (void*)FALSE);
 	RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, (void*)FALSE);
 
-	if(type == MOTION_BLUR_SNIPER){
-		if(!bJustInitialised)
+	if (type == MOTION_BLUR_SNIPER) {
+		if (!bJustInitialised)
 			RenderOverlaySniper(cam, red, green, blue, blur);
-	}else switch(EffectSwitch){
+	}
+	else switch (EffectSwitch) {
 	case POSTFX_OFF:
 	case POSTFX_SIMPLE:
 		// no actual rendering here
 		break;
 	case POSTFX_NORMAL:
-		if(MotionBlurOn){
-			if(!bJustInitialised)
+		if (MotionBlurOn) {
+			if (!bJustInitialised)
 				RenderOverlayBlur(cam, red, green, blue, blur);
-		}else{
+		}
+		else {
 			RenderOverlayShader(cam, red, green, blue, blur);
 		}
 		break;
@@ -435,7 +439,7 @@ CPostFX::Render(RwCamera *cam, uint32 red, uint32 green, uint32 blue, uint32 blu
 		break;
 	}
 
-	if(!bJustInitialised)
+	if (!bJustInitialised)
 		RenderMotionBlur(cam, 175.0f * CMBlur::Drunkness);
 
 	RwRenderStateSet(rwRENDERSTATEZTESTENABLE, (void*)TRUE);
@@ -445,12 +449,13 @@ CPostFX::Render(RwCamera *cam, uint32 red, uint32 green, uint32 blue, uint32 blu
 	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
 	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
 
-	if(NeedFrontBuffer(type)){
+	if (NeedFrontBuffer(type)) {
 		RwRasterPushContext(pFrontBuffer);
 		RwRasterRenderFast(RwCameraGetRaster(cam), 0, 0);
 		RwRasterPopContext();
 		bJustInitialised = false;
-	}else
+	}
+	else
 		bJustInitialised = true;
 
 	POP_RENDERGROUP();
@@ -472,14 +477,14 @@ CPostFX::SmoothColor(uint32 red, uint32 green, uint32 blue, uint32 alpha)
 	PrevGreen[Next] = green;
 	PrevBlue[Next] = blue;
 	PrevAlpha[Next] = alpha;
-	Next = (Next+1) % NUMAVERAGE;
-	NumValues = Min(NumValues+1, NUMAVERAGE);
+	Next = (Next + 1) % NUMAVERAGE;
+	NumValues = Min(NumValues + 1, NUMAVERAGE);
 
 	AvgRed = 0;
 	AvgGreen = 0;
 	AvgBlue = 0;
 	AvgAlpha = 0;
-	for(int i = 0; i < NumValues; i++){
+	for (int i = 0; i < NumValues; i++) {
 		AvgRed += PrevRed[i];
 		AvgGreen += PrevGreen[i];
 		AvgBlue += PrevBlue[i];

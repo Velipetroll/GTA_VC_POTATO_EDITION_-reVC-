@@ -2486,10 +2486,19 @@ WinMain(HINSTANCE instance,
 					case GS_PLAYING_GAME:
 					{
 						float ms = (float)CTimer::GetCurrentTimeInCycles() / (float)CTimer::GetCyclesPerMillisecond();
-						if ( RwInitialised )
+						if (RwInitialised)
 						{
 							if (!FrontEndMenuManager.m_PrefsFrameLimiter || (1000.0f / (float)RsGlobal.maxFPS) < ms)
+							{
 								RsEventHandler(rsIDLE, (void *)TRUE);
+							}
+							else
+							{
+								// --- OPTIMIZACIÓN EXTREMA: Eliminar Busy-Wait ---
+								// Si el limitador de cuadros está activo y aún no es tiempo,
+								// cedemos la CPU al sistema operativo por 1 milisegundo.
+								Sleep(1);
+							}
 						}
 						break;
 					}
