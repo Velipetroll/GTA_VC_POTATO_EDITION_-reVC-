@@ -33,7 +33,6 @@ struct MatFXDual
 	RwInt32 dstBlend;
 };
 
-
 struct MatFX
 {
 	union {
@@ -58,10 +57,11 @@ extern "C" {
 
 #ifdef PS2_MATFX
 
+// ESTA FUNCIÓN SE QUEDA: Es el render base. Si se vacía, los modelos se vuelven invisibles.
 void
 _rpMatFXD3D8AtomicMatFXDefaultRender(RxD3D8InstanceData *inst, int flags, RwTexture *texture)
 {
-	if(flags & (rpGEOMETRYTEXTURED|rpGEOMETRYTEXTURED2) && texture)
+	if (flags & (rpGEOMETRYTEXTURED | rpGEOMETRYTEXTURED2) && texture)
 		RwD3D8SetTexture(texture, 0);
 	else
 		RwD3D8SetTexture(nil, 0);
@@ -71,154 +71,33 @@ _rpMatFXD3D8AtomicMatFXDefaultRender(RxD3D8InstanceData *inst, int flags, RwText
 	RwD3D8SetVertexShader(inst->vertexShader);
 	RwD3D8SetStreamSource(0, inst->vertexBuffer, inst->stride);
 
-	if(inst->indexBuffer){
+	if (inst->indexBuffer) {
 		RwD3D8SetIndices(inst->indexBuffer, inst->baseIndex);
 		RwD3D8DrawIndexedPrimitive(inst->primType, 0, inst->numVertices, 0, inst->numIndices);
-	}else
+	}
+	else
 		RwD3D8DrawPrimitive(inst->primType, inst->baseIndex, inst->numVertices);
 }
 
-// map [-1; -1] -> [0; 1], flip V
-static RwMatrix scalenormal = {
-	{ 0.5f, 0.0f, 0.0f }, 0,
-	{ 0.0f, -0.5f, 0.0f }, 0,
-	{ 0.0f, 0.0f, 1.0f }, 0,
-	{ 0.5f, 0.5f, 0.0f }, 0,
-	
-};
-
-// flipped U for PS2
-static RwMatrix scalenormal_flipU = {
-	{ -0.5f, 0.0f, 0.0f }, 0,
-	{ 0.0f, -0.5f, 0.0f }, 0,
-	{ 0.0f, 0.0f, 1.0f }, 0,
-	{ 0.5f, 0.5f, 0.0f }, 0,
-	
-};
+// FUNCIONES VACIADAS
 
 void
 ApplyEnvMapTextureMatrix(RwTexture *tex, int n, RwFrame *frame)
 {
-	RwD3D8SetTexture(tex, n);
-	RwD3D8SetTextureStageState(n, D3DRS_ALPHAREF, 2);
-	RwD3D8SetTextureStageState(n, D3DTSS_TEXCOORDINDEX, D3DTSS_TCI_CAMERASPACENORMAL);
-	if(frame){
-		RwMatrix *envframemat = RwMatrixCreate();
-		RwMatrix *tmpmat = RwMatrixCreate();
-		RwMatrix *envmat = RwMatrixCreate();
-
-		RwMatrixInvert(envframemat, RwFrameGetLTM(frame));
-		// PS2
-		// can this be simplified?
-		*tmpmat = *RwFrameGetLTM(RwCameraGetFrame((RwCamera*)RWSRCGLOBAL(curCamera)));
-		RwV3dNegate(&tmpmat->right, &tmpmat->right);
-		tmpmat->flags = 0;
-		tmpmat->pos.x = 0.0f;
-		tmpmat->pos.y = 0.0f;
-		tmpmat->pos.z = 0.0f;
-		RwMatrixMultiply(envmat, tmpmat, envframemat);
-		*tmpmat = *envmat;
-		// important because envframemat can have a translation that we don't like
-		tmpmat->pos.x = 0.0f;
-		tmpmat->pos.y = 0.0f;
-		tmpmat->pos.z = 0.0f;
-		// for some reason we flip in U as well
-		RwMatrixMultiply(envmat, tmpmat, &scalenormal_flipU);
-
-		RwD3D8SetTransform(D3DTS_TEXTURE0+n, envmat);
-
-		RwMatrixDestroy(envmat);
-		RwMatrixDestroy(tmpmat);
-		RwMatrixDestroy(envframemat);
-	}else
-		RwD3D8SetTransform(D3DTS_TEXTURE0+n, &scalenormal);
+	// VACIADA: Cero cálculos de matrices de reflejo en CPU.
 }
 
 void
 _rpMatFXD3D8AtomicMatFXEnvRender_ps2(RxD3D8InstanceData *inst, int flags, int sel, RwTexture *texture, RwTexture *envMap)
 {
-	MatFX *matfx = *RWPLUGINOFFSET(MatFX*, inst->material, MatFXMaterialDataOffset);
-	MatFXEnv *env = &matfx->fx[sel].e;
-
-	uint8 intens = (uint8)(env->envCoeff*255.0f);
-
-	if(intens == 0 || envMap == nil){
-		if(sel == 0)
-			_rpMatFXD3D8AtomicMatFXDefaultRender(inst, flags, texture);
-		return;
-	}
-
-	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)(inst->vertexAlpha || inst->material->color.alpha != 0xFF));
-	if(flags & (rpGEOMETRYTEXTURED|rpGEOMETRYTEXTURED2) && texture)
-		RwD3D8SetTexture(texture, 0);
-	else
-		RwD3D8SetTexture(nil, 0);
-	RwD3D8SetPixelShader(0);
-	RwD3D8SetVertexShader(inst->vertexShader);
-	RwD3D8SetStreamSource(0, inst->vertexBuffer, inst->stride);
-	RwD3D8SetIndices(inst->indexBuffer, inst->baseIndex);
-	if(inst->indexBuffer)
-		RwD3D8DrawIndexedPrimitive(inst->primType, 0, inst->numVertices, 0, inst->numIndices);
-	else
-		RwD3D8DrawPrimitive(inst->primType, inst->baseIndex, inst->numVertices);
-
-	// Effect pass
-	
-	ApplyEnvMapTextureMatrix(envMap, 0, env->envFrame);
-	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
-	RwUInt32 src, dst, lighting, zwrite, fog, fogcol;
-	RwRenderStateGet(rwRENDERSTATESRCBLEND, &src);
-	RwRenderStateGet(rwRENDERSTATEDESTBLEND, &dst);
-
-	// This is of course not using framebuffer alpha,
-	// but if the diffuse texture had no alpha, the result should actually be rather the same
-	if(env->envFBalpha)
-		RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
-	else
-		RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDONE);
-	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDONE);
-	RwD3D8GetRenderState(D3DRS_LIGHTING, &lighting);
-	RwD3D8GetRenderState(D3DRS_ZWRITEENABLE, &zwrite);
-	RwD3D8GetRenderState(D3DRS_FOGENABLE, &fog);
-	RwD3D8SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-	if(fog){
-		RwD3D8GetRenderState(D3DRS_FOGCOLOR, &fogcol);
-		RwD3D8SetRenderState(D3DRS_FOGCOLOR, 0);
-	}
-
-	D3DCOLOR texfactor = D3DCOLOR_RGBA(intens, intens, intens, intens);
-	RwD3D8SetRenderState(D3DRS_TEXTUREFACTOR, texfactor);
-	RwD3D8SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE);
-	RwD3D8SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_CURRENT);
-	RwD3D8SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_TFACTOR);
-	// alpha unused
-	//RwD3D8SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-	//RwD3D8SetTextureStageState(1, D3DTSS_ALPHAARG1, D3DTA_CURRENT);
-	//RwD3D8SetTextureStageState(1, D3DTSS_ALPHAARG2, D3DTA_TFACTOR);
-
-	if(inst->indexBuffer)
-		RwD3D8DrawIndexedPrimitive(inst->primType, 0, inst->numVertices, 0, inst->numIndices);
-	else
-		RwD3D8DrawPrimitive(inst->primType, inst->baseIndex, inst->numVertices);
-
-	// Reset states
-
-	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)FALSE);
-	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)src);
-	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)dst);
-	RwD3D8SetRenderState(D3DRS_LIGHTING, lighting);
-	RwD3D8SetRenderState(D3DRS_ZWRITEENABLE, zwrite);
-	if(fog)
-		RwD3D8SetRenderState(D3DRS_FOGCOLOR, fogcol);
-	RwD3D8SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-	RwD3D8SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-	RwD3D8SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, 0);
-	RwD3D8SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
+	// VACIADA: Se omite la doble pasada de texturas. Se manda directo al render barato.
+	_rpMatFXD3D8AtomicMatFXDefaultRender(inst, flags, texture);
 }
 
 void
 _rwD3D8EnableClippingIfNeeded(void *object, RwUInt8 type)
 {
+	// SE QUEDA: El "Culling" le dice a la GPU que no dibuje cosas que no estás viendo. Vital para la GMA 3150.
 	int clip;
 	if (type == rpATOMIC)
 		clip = !RwD3D8CameraIsSphereFullyInsideFrustum(RwCameraGetCurrentCameraMacro(), RpAtomicGetWorldBoundingSphere((RpAtomic *)object));
@@ -239,7 +118,8 @@ _rwD3D8AtomicMatFXRenderCallback(RwResEntry *repEntry, void *object, RwUInt8 typ
 	if (flags & rpGEOMETRYPRELIT) {
 		RwD3D8SetRenderState(D3DRS_COLORVERTEX, 1);
 		RwD3D8SetRenderState(D3DRS_EMISSIVEMATERIALSOURCE, D3DMCS_COLOR1);
-	} else {
+	}
+	else {
 		RwD3D8SetRenderState(D3DRS_COLORVERTEX, 0);
 		RwD3D8SetRenderState(D3DRS_EMISSIVEMATERIALSOURCE, D3DMCS_MATERIAL);
 	}
@@ -249,7 +129,8 @@ _rwD3D8AtomicMatFXRenderCallback(RwResEntry *repEntry, void *object, RwUInt8 typ
 	RwD3D8GetRenderState(D3DRS_LIGHTING, &lighting);
 	if (lighting || flags & rpGEOMETRYPRELIT) {
 		forceBlack = FALSE;
-	} else {
+	}
+	else {
 		forceBlack = TRUE;
 		RwD3D8SetTexture(nil, 0);
 		RwD3D8SetRenderState(D3DRS_TEXTUREFACTOR, D3DCOLOR_RGBA(0, 0, 0, 255));
@@ -265,30 +146,9 @@ _rwD3D8AtomicMatFXRenderCallback(RwResEntry *repEntry, void *object, RwUInt8 typ
 		else {
 			if (lighting)
 				RwD3D8SetSurfaceProperties(&inst->material->color, &inst->material->surfaceProps, flags & rpGEOMETRYMODULATEMATERIALCOLOR);
-			MatFX *matfx = *RWPLUGINOFFSET(MatFX *, inst->material, MatFXMaterialDataOffset);
-			int effect = matfx ? matfx->effects : rpMATFXEFFECTNULL;
-			switch (effect) {
-			case rpMATFXEFFECTNULL:
-			default:
-				_rpMatFXD3D8AtomicMatFXDefaultRender(inst, flags, inst->material->texture);
-				break;
-			case rpMATFXEFFECTBUMPMAP:
-				_rpMatFXD3D8AtomicMatFXBumpMapRender(inst, flags, inst->material->texture, matfx->fx[0].b.bumpedTex, nil);
-				break;
-			case rpMATFXEFFECTENVMAP:
-			{
-				// TODO: matfx switch in the settings
-				//_rpMatFXD3D8AtomicMatFXEnvRender(inst, flags, 0, inst->material->texture, matfx->fx[0].e.envTex);
-				_rpMatFXD3D8AtomicMatFXEnvRender_ps2(inst, flags, 0, inst->material->texture, matfx->fx[0].e.envTex);
-				break;
-			}
-			case rpMATFXEFFECTBUMPENVMAP:
-				_rpMatFXD3D8AtomicMatFXBumpMapRender(inst, flags, inst->material->texture, matfx->fx[0].b.bumpedTex, matfx->fx[1].e.envTex);
-				break;
-			case rpMATFXEFFECTDUAL:
-				_rpMatFXD3D8AtomicMatFXDualPassRender(inst, flags, inst->material->texture, matfx->fx[0].d.dualTex);
-				break;
-			}
+
+			// BYPASS TOTAL MATFX: Ignoramos el switch de materiales y forzamos renderización estándar.
+			_rpMatFXD3D8AtomicMatFXDefaultRender(inst, flags, inst->material->texture);
 		}
 		inst++;
 	}
@@ -303,9 +163,9 @@ void
 ReplaceMatFxCallback()
 {
 	RxD3D8AllInOneSetRenderCallBack(
-	    RxPipelineFindNodeByName(RpMatFXGetD3D8Pipeline(rpMATFXD3D8ATOMICPIPELINE), RxNodeDefinitionGetD3D8AtomicAllInOne()->name, nil, nil),
-	    _rwD3D8AtomicMatFXRenderCallback);
-	
+		RxPipelineFindNodeByName(RpMatFXGetD3D8Pipeline(rpMATFXD3D8ATOMICPIPELINE), RxNodeDefinitionGetD3D8AtomicAllInOne()->name, nil, nil),
+		_rwD3D8AtomicMatFXRenderCallback);
+
 }
 #endif // PS2_MATFX
 
