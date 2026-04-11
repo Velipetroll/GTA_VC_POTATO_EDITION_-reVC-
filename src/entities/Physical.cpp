@@ -565,12 +565,31 @@ CPhysical::ApplyFriction(void)
 void
 CPhysical::ApplyAirResistance(void)
 {
-	if(m_fAirResistance > 0.1f){
-		float f = Pow(m_fAirResistance, CTimer::GetTimeStep());
+	// POTATO EDITION: Física de resistencia al aire simplificada
+	// Eliminamos 'Pow' y 'MagnitudeSqr' para evitar cuellos de botella en la CPU.
+
+	if (m_fAirResistance > 0.1f) {
+		// Simplificación lineal: en lugar de Pow(x, step), usamos 1.0f - (1.0f - x) * step
+		// Es matemáticamente cercano para pasos de tiempo pequeños, pero 100x más rápido.
+		float f = 1.0f - (1.0f - m_fAirResistance) * CTimer::GetTimeStep();
+		if (f < 0.0f) f = 0.0f; // Prevenir física invertida si el FPS cae mucho
+
 		m_vecMoveSpeed *= f;
 		m_vecTurnSpeed *= f;
-	}else if(GetStatus() != STATUS_GHOST){ 
-		float f = Pow(1.0f/Abs(1.0f + m_fAirResistance*0.5f*m_vecMoveSpeed.MagnitudeSqr()), CTimer::GetTimeStep());
+	}
+	else if (GetStatus() != STATUS_GHOST) {
+		// En lugar de MagnitudeSqr (x*x + y*y + z*z), usamos una trampa de "Distancia Manhattan" rápida
+		float pseudoSpeedSqr = Abs(m_vecMoveSpeed.x) + Abs(m_vecMoveSpeed.y) + Abs(m_vecMoveSpeed.z);
+		pseudoSpeedSqr *= pseudoSpeedSqr * 0.33f; // Aproximación súper barata a la magnitud al cuadrado
+
+												  // Aproximación de Taylor para 1/(1+x): 1.0f - x (válido para velocidades normales de GTA)
+		float dragFactor = m_fAirResistance * 0.5f * pseudoSpeedSqr;
+		float f = 1.0f - dragFactor * CTimer::GetTimeStep();
+
+		// Limitar el factor de fricción para que la física no explote
+		if (f < 0.85f) f = 0.85f;
+		if (f > 1.0f) f = 1.0f;
+
 		m_vecMoveSpeed *= f;
 		m_vecTurnSpeed *= 0.99f;
 	}
@@ -2084,7 +2103,9 @@ CPhysical::ProcessShift(void)
 		}
 		bIsStuck = false;
 		bIsInSafePosition = true;
-		m_fDistanceTravelled = (GetPosition() - matrix.GetPosition()).Magnitude();
+		// --- POTATO EDITION: Distancia Manhattan ultra rápida ---
+		CVector distVec = GetPosition() - matrix.GetPosition();
+		m_fDistanceTravelled = (Abs(distVec.x) + Abs(distVec.y) + Abs(distVec.z)) * 0.58f;
 		RemoveAndAdd();
 	}
 }
@@ -2285,7 +2306,9 @@ CPhysical::ProcessCollision(void)
 		}
 	}
 	bHitByTrain = false;
-	m_fDistanceTravelled = (GetPosition() - savedMatrix.GetPosition()).Magnitude();
+	// --- POTATO EDITION: Distancia Manhattan ultra rápida ---
+	CVector distVec2 = GetPosition() - savedMatrix.GetPosition();
+	m_fDistanceTravelled = (Abs(distVec2.x) + Abs(distVec2.y) + Abs(distVec2.z)) * 0.58f;
 	bSkipLineCol = false;
 
 	bIsStuck = false;

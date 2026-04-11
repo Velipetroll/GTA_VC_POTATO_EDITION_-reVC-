@@ -20,11 +20,11 @@ bool CTrafficLights::bGreenLightsCheat;
 void
 CTrafficLights::DisplayActualLight(CEntity *ent)
 {
-	if(ent->GetUp().z < 0.96f || ent->bRenderDamaged)
+	if (ent->GetUp().z < 0.96f || ent->bRenderDamaged)
 		return;
 
 	int phase;
-	if(FindTrafficLightType(ent) == 1)
+	if (FindTrafficLightType(ent) == 1)
 		phase = LightForCars1_Visual();
 	else
 		phase = LightForCars2_Visual();
@@ -79,19 +79,8 @@ CTrafficLights::DisplayActualLight(CEntity *ent)
 			break;
 		}
 
-		if (CWeather::TrafficLightBrightness > 0.5f)
-			CPointLights::AddLight(CPointLights::LIGHT_POINT,
-				pos1, CVector(0.0f, 0.0f, 0.0f), 8.0f,
-				r / 255.0f, g / 255.0f, 0 / 255.0f, CPointLights::FOG_NORMAL, true);
-
-		if (CWeather::TrafficLightBrightness > 0.05f)
-			CShadows::StoreStaticShadow((uintptr)ent,
-				SHADOWTYPE_ADDITIVE, gpShadowExplosionTex, &pos1,
-				8.0f, 0.0f, 0.0f, -8.0f, 128,
-				r * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				g * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				0 * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				12.0f, 1.0f, 40.0f, false, 0.0f);
+		// --- POTATO EDITION: CPointLights y CShadows ELIMINADOS ---
+		// Conservamos CCoronas y CBrightLights para que el jugador siga viendo el foco brillante.
 
 		if (DotProduct(TheCamera.GetForward(), ent->GetForward()) < 0.0f)
 			CCoronas::RegisterCorona((uintptr)ent + id,
@@ -117,18 +106,6 @@ CTrafficLights::DisplayActualLight(CEntity *ent)
 	}
 	else if (MI_TRAFFICLIGHTS_VERTICAL == m) {
 		CBaseModelInfo* mi = CModelInfo::GetModelInfo(ent->GetModelIndex());
-		float x = mi->Get2dEffect(0)->pos.x;
-		float yMin = mi->Get2dEffect(0)->pos.y;
-		float yMax = mi->Get2dEffect(0)->pos.y;
-		float zMin = mi->Get2dEffect(0)->pos.z;
-		float zMax = mi->Get2dEffect(0)->pos.z;
-		for (i = 1; i < 6; i++) {
-			assert(mi->Get2dEffect(i));
-			yMin = Min(yMin, mi->Get2dEffect(i)->pos.y);
-			yMax = Max(yMax, mi->Get2dEffect(i)->pos.y);
-			zMin = Min(zMin, mi->Get2dEffect(i)->pos.z);
-			zMax = Max(zMax, mi->Get2dEffect(i)->pos.z);
-		}
 
 		CVector pos1;
 		uint8 r, g;
@@ -162,19 +139,7 @@ CTrafficLights::DisplayActualLight(CEntity *ent)
 
 		CBrightLights::RegisterOne(pos1, ent->GetUp(), ent->GetRight(), CVector(0.0f, 0.0f, 0.0f), id + BRIGHTLIGHT_TRAFFIC_GREEN);
 
-		if (CWeather::TrafficLightBrightness > 0.5f)
-			CPointLights::AddLight(CPointLights::LIGHT_POINT,
-				pos1, CVector(0.0f, 0.0f, 0.0f), 8.0f,
-				r / 255.0f, g / 255.0f, 0 / 255.0f, CPointLights::FOG_NORMAL, true);
-
-		if (CWeather::TrafficLightBrightness > 0.05f)
-			CShadows::StoreStaticShadow((uintptr)ent,
-				SHADOWTYPE_ADDITIVE, gpShadowExplosionTex, &pos1,
-				8.0f, 0.0f, 0.0f, -8.0f, 128,
-				r * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				g * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				0 * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				12.0f, 1.0f, 40.0f, false, 0.0f);
+		// --- POTATO EDITION: CPointLights y CShadows ELIMINADOS ---
 
 		if (DotProduct(TheCamera.GetForward(), ent->GetForward()) < 0.0f)
 			CCoronas::RegisterCorona((uintptr)ent + id,
@@ -256,25 +221,12 @@ CTrafficLights::DisplayActualLight(CEntity *ent)
 			}
 		}
 
-		CVector pos = (pos1 + pos2) / 2;
 		if (id >= 0) {
 			CBrightLights::RegisterOne(pos1, ent->GetUp(), ent->GetRight(), CVector(0.0f, 0.0f, 0.0f), id + BRIGHTLIGHT_TRAFFIC_GREEN);
 			CBrightLights::RegisterOne(pos2, ent->GetUp(), ent->GetRight(), CVector(0.0f, 0.0f, 0.0f), id + BRIGHTLIGHT_TRAFFIC_GREEN);
 		}
 
-		if (CWeather::TrafficLightBrightness > 0.5f)
-			CPointLights::AddLight(CPointLights::LIGHT_POINT,
-				pos, CVector(0.0f, 0.0f, 0.0f), 8.0f,
-				r / 255.0f, g / 255.0f, 0 / 255.0f, CPointLights::FOG_NORMAL, true);
-
-		if (CWeather::TrafficLightBrightness > 0.05f)
-			CShadows::StoreStaticShadow((uintptr)ent,
-				SHADOWTYPE_ADDITIVE, gpShadowExplosionTex, &pos,
-				8.0f, 0.0f, 0.0f, -8.0f, 128,
-				r * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				g * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				0 * CTimeCycle::GetLightOnGroundBrightness() * CWeather::TrafficLightBrightness / 8.0f,
-				12.0f, 1.0f, 40.0f, false, 0.0f);
+		// --- POTATO EDITION: CPointLights y CShadows ELIMINADOS ---
 
 		if (id >= 0) {
 			if (DotProduct(TheCamera.GetForward(), ent->GetForward()) > 0.0f)
@@ -314,60 +266,57 @@ CTrafficLights::ScanForLightsOnMap(void)
 	int i, j, k, l;
 	CPtrNode *node;
 
-	for(x = 0; x < NUMSECTORS_X; x++)
-	for(y = 0; y < NUMSECTORS_Y; y++){
-		CPtrList &list = CWorld::GetSector(x, y)->m_lists[ENTITYLIST_DUMMIES];
-		for(node = list.first; node; node = node->next){
-			CEntity *light = (CEntity*)node->item;
-			if (!IsTrafficLight(light->GetModelIndex()))
-				continue;
-
-			CVector pos1 = light->GetMatrix() * CVector(17.0f, 0.0f, 0.0f);
-			CVector pos2 = light->GetMatrix() * CVector(-15.0f, 0.0f, 0.0f);
-
-			// Check cars
-			for(i = 0; i < ThePaths.m_numCarPathNodes; i++){
-				if ((ThePaths.m_pathNodes[i].GetPosition() - pos1).MagnitudeSqr() >= SQR(100.0f))
+	for (x = 0; x < NUMSECTORS_X; x++)
+		for (y = 0; y < NUMSECTORS_Y; y++) {
+			CPtrList &list = CWorld::GetSector(x, y)->m_lists[ENTITYLIST_DUMMIES];
+			for (node = list.first; node; node = node->next) {
+				CEntity *light = (CEntity*)node->item;
+				if (!IsTrafficLight(light->GetModelIndex()))
 					continue;
-				for (j = 0; j < ThePaths.m_pathNodes[i].numLinks; j++){
-					int con = ThePaths.ConnectedNode(ThePaths.m_pathNodes[i].firstLink + j);
-					if (i < con) {
-						CVector i_pos = ThePaths.m_pathNodes[i].GetPosition();
-						CVector con_pos = ThePaths.m_pathNodes[con].GetPosition();
-						if (Abs(pos1.z - (i_pos.z + con_pos.z) / 2) < 10.0f &&
-							DoesLineSegmentIntersect(pos1.x, pos1.y, pos2.x, pos2.y, i_pos.x, i_pos.y, con_pos.x, con_pos.y)) {
-							//debug("Setting up light: nodes %f %f %f - %f %f %f, light %f %f %f - %f %f %f\n", i_pos.x, i_pos.y, i_pos.z, con_pos.x, con_pos.y, con_pos.z, pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
-							int link = ThePaths.m_carPathConnections[ThePaths.m_pathNodes[i].firstLink + j];
-							ThePaths.m_carPathLinks[link].trafficLightType = FindTrafficLightType(light);
-							if (ThePaths.m_pathNodes[i].numLinks > ThePaths.m_pathNodes[con].numLinks)
-								con = i;
-							if (ThePaths.m_carPathLinks[link].pathNodeIndex != con)
-								ThePaths.m_carPathLinks[link].trafficLightDirection = true;
+
+				CVector pos1 = light->GetMatrix() * CVector(17.0f, 0.0f, 0.0f);
+				CVector pos2 = light->GetMatrix() * CVector(-15.0f, 0.0f, 0.0f);
+
+				for (i = 0; i < ThePaths.m_numCarPathNodes; i++) {
+					if ((ThePaths.m_pathNodes[i].GetPosition() - pos1).MagnitudeSqr() >= SQR(100.0f))
+						continue;
+					for (j = 0; j < ThePaths.m_pathNodes[i].numLinks; j++) {
+						int con = ThePaths.ConnectedNode(ThePaths.m_pathNodes[i].firstLink + j);
+						if (i < con) {
+							CVector i_pos = ThePaths.m_pathNodes[i].GetPosition();
+							CVector con_pos = ThePaths.m_pathNodes[con].GetPosition();
+							if (Abs(pos1.z - (i_pos.z + con_pos.z) / 2) < 10.0f &&
+								DoesLineSegmentIntersect(pos1.x, pos1.y, pos2.x, pos2.y, i_pos.x, i_pos.y, con_pos.x, con_pos.y)) {
+								int link = ThePaths.m_carPathConnections[ThePaths.m_pathNodes[i].firstLink + j];
+								ThePaths.m_carPathLinks[link].trafficLightType = FindTrafficLightType(light);
+								if (ThePaths.m_pathNodes[i].numLinks > ThePaths.m_pathNodes[con].numLinks)
+									con = i;
+								if (ThePaths.m_carPathLinks[link].pathNodeIndex != con)
+									ThePaths.m_carPathLinks[link].trafficLightDirection = true;
+							}
 						}
 					}
 				}
-			}
 
-			// Check peds
-			for(i = ThePaths.m_numCarPathNodes; i < ThePaths.m_numPathNodes; i++){
-				float dist1, dist2;
-				dist1 = Abs(ThePaths.m_pathNodes[i].GetX() - light->GetPosition().x) +
-					Abs(ThePaths.m_pathNodes[i].GetY() - light->GetPosition().y);
-				if(dist1 < 50.0f){
-					for(l = 0; l < ThePaths.m_pathNodes[i].numLinks; l++){
-						j = ThePaths.m_pathNodes[i].firstLink + l;
-						if(ThePaths.ConnectionCrossesRoad(j)){
-							k = ThePaths.ConnectedNode(j);
-							dist2 = Abs(ThePaths.m_pathNodes[k].GetX() - light->GetPosition().x) +
-								Abs(ThePaths.m_pathNodes[k].GetY() - light->GetPosition().y);
-							if(dist1 < 15.0f || dist2 < 15.0f)
-								ThePaths.ConnectionSetTrafficLight(j);
+				for (i = ThePaths.m_numCarPathNodes; i < ThePaths.m_numPathNodes; i++) {
+					float dist1, dist2;
+					dist1 = Abs(ThePaths.m_pathNodes[i].GetX() - light->GetPosition().x) +
+						Abs(ThePaths.m_pathNodes[i].GetY() - light->GetPosition().y);
+					if (dist1 < 50.0f) {
+						for (l = 0; l < ThePaths.m_pathNodes[i].numLinks; l++) {
+							j = ThePaths.m_pathNodes[i].firstLink + l;
+							if (ThePaths.ConnectionCrossesRoad(j)) {
+								k = ThePaths.ConnectedNode(j);
+								dist2 = Abs(ThePaths.m_pathNodes[k].GetX() - light->GetPosition().x) +
+									Abs(ThePaths.m_pathNodes[k].GetY() - light->GetPosition().y);
+								if (dist1 < 15.0f || dist2 < 15.0f)
+									ThePaths.ConnectionSetTrafficLight(j);
+							}
 						}
 					}
 				}
 			}
 		}
-	}
 }
 
 bool
@@ -380,19 +329,20 @@ CTrafficLights::ShouldCarStopForLight(CVehicle *vehicle, bool alwaysStop)
 	type = ThePaths.m_carPathLinks[node].trafficLightType;
 	direction = ThePaths.m_carPathLinks[node].trafficLightDirection;
 
-	if(type){
-		if((direction || ThePaths.m_carPathLinks[node].pathNodeIndex == vehicle->AutoPilot.m_nNextRouteNode) &&
-		   (!direction || ThePaths.m_carPathLinks[node].pathNodeIndex != vehicle->AutoPilot.m_nNextRouteNode))
-			if(alwaysStop ||
-			   type == 1 && LightForCars1() != CAR_LIGHTS_GREEN ||
-			   type == 2 && LightForCars2() != CAR_LIGHTS_GREEN){
+	if (type) {
+		if ((direction || ThePaths.m_carPathLinks[node].pathNodeIndex == vehicle->AutoPilot.m_nNextRouteNode) &&
+			(!direction || ThePaths.m_carPathLinks[node].pathNodeIndex != vehicle->AutoPilot.m_nNextRouteNode))
+			if (alwaysStop ||
+				type == 1 && LightForCars1() != CAR_LIGHTS_GREEN ||
+				type == 2 && LightForCars2() != CAR_LIGHTS_GREEN) {
 				float dist = DotProduct2D(CVector2D(vehicle->GetPosition()) - ThePaths.m_carPathLinks[node].GetPosition(),
-						ThePaths.m_carPathLinks[node].GetDirection());
-				if(vehicle->AutoPilot.m_nNextDirection == -1){
-					if(dist > 0.0f && dist < 8.0f)
+					ThePaths.m_carPathLinks[node].GetDirection());
+				if (vehicle->AutoPilot.m_nNextDirection == -1) {
+					if (dist > 0.0f && dist < 8.0f)
 						return true;
-				}else{
-					if(dist < 0.0f && dist > -8.0f)
+				}
+				else {
+					if (dist < 0.0f && dist > -8.0f)
 						return true;
 				}
 			}
@@ -401,41 +351,43 @@ CTrafficLights::ShouldCarStopForLight(CVehicle *vehicle, bool alwaysStop)
 	node = vehicle->AutoPilot.m_nCurrentPathNodeInfo;
 	type = ThePaths.m_carPathLinks[node].trafficLightType;
 	direction = ThePaths.m_carPathLinks[node].trafficLightDirection;
-	if(type){
-		if((direction || ThePaths.m_carPathLinks[node].pathNodeIndex == vehicle->AutoPilot.m_nCurrentRouteNode) &&
-		   (!direction || ThePaths.m_carPathLinks[node].pathNodeIndex != vehicle->AutoPilot.m_nCurrentRouteNode))
-			if(alwaysStop ||
-			   type == 1 && LightForCars1() != CAR_LIGHTS_GREEN ||
-			   type == 2 && LightForCars2() != CAR_LIGHTS_GREEN){
+	if (type) {
+		if ((direction || ThePaths.m_carPathLinks[node].pathNodeIndex == vehicle->AutoPilot.m_nCurrentRouteNode) &&
+			(!direction || ThePaths.m_carPathLinks[node].pathNodeIndex != vehicle->AutoPilot.m_nCurrentRouteNode))
+			if (alwaysStop ||
+				type == 1 && LightForCars1() != CAR_LIGHTS_GREEN ||
+				type == 2 && LightForCars2() != CAR_LIGHTS_GREEN) {
 				float dist = DotProduct2D(CVector2D(vehicle->GetPosition()) - ThePaths.m_carPathLinks[node].GetPosition(),
-						ThePaths.m_carPathLinks[node].GetDirection());
-				if(vehicle->AutoPilot.m_nCurrentDirection == -1){
-					if(dist > 0.0f && dist < 8.0f)
+					ThePaths.m_carPathLinks[node].GetDirection());
+				if (vehicle->AutoPilot.m_nCurrentDirection == -1) {
+					if (dist > 0.0f && dist < 8.0f)
 						return true;
-				}else{
-					if(dist < 0.0f && dist > -8.0f)
+				}
+				else {
+					if (dist < 0.0f && dist > -8.0f)
 						return true;
 				}
 			}
 	}
 
-	if(vehicle->GetStatus() == STATUS_PHYSICS){
+	if (vehicle->GetStatus() == STATUS_PHYSICS) {
 		node = vehicle->AutoPilot.m_nPreviousPathNodeInfo;
 		type = ThePaths.m_carPathLinks[node].trafficLightType;
 		direction = ThePaths.m_carPathLinks[node].trafficLightDirection;
-		if(type){
-			if((direction || ThePaths.m_carPathLinks[node].pathNodeIndex == vehicle->AutoPilot.m_nPrevRouteNode) &&
-			   (!direction || ThePaths.m_carPathLinks[node].pathNodeIndex != vehicle->AutoPilot.m_nPrevRouteNode))
-				if(alwaysStop ||
-				   type == 1 && LightForCars1() != CAR_LIGHTS_GREEN ||
-				   type == 2 && LightForCars2() != CAR_LIGHTS_GREEN){
+		if (type) {
+			if ((direction || ThePaths.m_carPathLinks[node].pathNodeIndex == vehicle->AutoPilot.m_nPrevRouteNode) &&
+				(!direction || ThePaths.m_carPathLinks[node].pathNodeIndex != vehicle->AutoPilot.m_nPrevRouteNode))
+				if (alwaysStop ||
+					type == 1 && LightForCars1() != CAR_LIGHTS_GREEN ||
+					type == 2 && LightForCars2() != CAR_LIGHTS_GREEN) {
 					float dist = DotProduct2D(CVector2D(vehicle->GetPosition()) - ThePaths.m_carPathLinks[node].GetPosition(),
-							ThePaths.m_carPathLinks[node].GetDirection());
-					if(vehicle->AutoPilot.m_nPreviousDirection == -1){
-						if(dist > 0.0f && dist < 6.0f)
+						ThePaths.m_carPathLinks[node].GetDirection());
+					if (vehicle->AutoPilot.m_nPreviousDirection == -1) {
+						if (dist > 0.0f && dist < 6.0f)
 							return true;
-					}else{
-						if(dist < 0.0f && dist > -6.0f)
+					}
+					else {
+						if (dist < 0.0f && dist > -6.0f)
 							return true;
 					}
 				}
@@ -460,8 +412,8 @@ int
 CTrafficLights::FindTrafficLightType(CEntity *light)
 {
 	float orientation = RADTODEG(CGeneral::GetATanOfXY(light->GetForward().x, light->GetForward().y));
-	if((orientation > 60.0f && orientation < 60.0f + 90.0f) ||
-	   (orientation > 240.0f && orientation < 240.0f + 90.0f))
+	if ((orientation > 60.0f && orientation < 60.0f + 90.0f) ||
+		(orientation > 240.0f && orientation < 240.0f + 90.0f))
 		return 1;
 	return 2;
 }
@@ -471,9 +423,9 @@ CTrafficLights::LightForPeds(void)
 {
 	uint32 period = CTimer::GetTimeInMilliseconds() % 16384;
 
-	if(period < 12000)
+	if (period < 12000)
 		return PED_LIGHTS_DONT_WALK;
-	else if(period < 16384 - 1000)
+	else if (period < 16384 - 1000)
 		return PED_LIGHTS_WALK;
 	else
 		return PED_LIGHTS_WALK_BLINK;
@@ -490,9 +442,9 @@ CTrafficLights::LightForCars1(void)
 
 	uint32 period = CTimer::GetTimeInMilliseconds() % 16384;
 
-	if(period < 5000)
+	if (period < 5000)
 		return CAR_LIGHTS_GREEN;
-	else if(period < 5000 + 1000)
+	else if (period < 5000 + 1000)
 		return CAR_LIGHTS_YELLOW;
 	else
 		return CAR_LIGHTS_RED;
@@ -509,11 +461,11 @@ CTrafficLights::LightForCars2(void)
 
 	uint32 period = CTimer::GetTimeInMilliseconds() % 16384;
 
-	if(period < 6000)
+	if (period < 6000)
 		return CAR_LIGHTS_RED;
-	else if(period < 12000 - 1000)
+	else if (period < 12000 - 1000)
 		return CAR_LIGHTS_GREEN;
-	else if(period < 12000)
+	else if (period < 12000)
 		return CAR_LIGHTS_YELLOW;
 	else
 		return CAR_LIGHTS_RED;

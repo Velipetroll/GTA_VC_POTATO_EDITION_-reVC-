@@ -476,9 +476,10 @@ bool CUpsideDownCarCheck::IsCarUpsideDown(int32 id)
 bool CUpsideDownCarCheck::IsCarUpsideDown(CVehicle* pVehicle)
 {
 	assert(pVehicle);
+	// --- POTATO EDITION: Evitamos la Raíz Cuadrada elevando los límites al cuadrado ---
 	return pVehicle->GetUp().z <= UPSIDEDOWN_UP_THRESHOLD &&
-		pVehicle->GetMoveSpeed().Magnitude() < UPSIDEDOWN_MOVE_SPEED_THRESHOLD &&
-		pVehicle->GetTurnSpeed().Magnitude() < UPSIDEDOWN_TURN_SPEED_THRESHOLD;
+		pVehicle->GetMoveSpeed().MagnitudeSqr() < (UPSIDEDOWN_MOVE_SPEED_THRESHOLD * UPSIDEDOWN_MOVE_SPEED_THRESHOLD) &&
+		pVehicle->GetTurnSpeed().MagnitudeSqr() < (UPSIDEDOWN_TURN_SPEED_THRESHOLD * UPSIDEDOWN_TURN_SPEED_THRESHOLD);
 }
 
 void CUpsideDownCarCheck::UpdateTimers()
@@ -559,18 +560,21 @@ void CStuckCarCheck::Init()
 void CStuckCarCheck::Process()
 {
 	uint32 timer = CTimer::GetTimeInMilliseconds();
-	for (int i = 0; i < MAX_STUCK_CAR_CHECKS; i++){
+	for (int i = 0; i < MAX_STUCK_CAR_CHECKS; i++) {
 		if (m_sCars[i].m_nVehicleIndex < 0)
 			continue;
 		if (timer <= m_sCars[i].m_nStuckTime + m_sCars[i].m_nLastCheck)
 			continue;
 		CVehicle* pv = CPools::GetVehiclePool()->GetAt(m_sCars[i].m_nVehicleIndex);
-		if (!pv){
+		if (!pv) {
 			m_sCars[i].Reset();
 			continue;
 		}
-		float distance = (pv->GetPosition() - m_sCars[i].m_vecPos).Magnitude();
-		m_sCars[i].m_bStuck = distance < m_sCars[i].m_fRadius;
+
+		// --- POTATO EDITION: Reemplazamos Magnitude() por MagnitudeSqr() ---
+		float distSqr = (pv->GetPosition() - m_sCars[i].m_vecPos).MagnitudeSqr();
+		m_sCars[i].m_bStuck = distSqr < (m_sCars[i].m_fRadius * m_sCars[i].m_fRadius);
+
 		m_sCars[i].m_vecPos = pv->GetPosition();
 		m_sCars[i].m_nLastCheck = timer;
 	}

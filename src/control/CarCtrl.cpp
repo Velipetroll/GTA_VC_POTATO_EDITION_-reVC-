@@ -946,23 +946,25 @@ CCarCtrl::RemoveCarsIfThePoolGetsFull(void)
 	}
 }
 
-void
-CCarCtrl::PossiblyRemoveVehicle(CVehicle* pVehicle)
+void CCarCtrl::PossiblyRemoveVehicle(CVehicle* pVehicle)
 {
 #ifdef FIX_BUGS
 	if (pVehicle->bIsLocked)
 		return;
 #endif
 	CVector vecPlayerPos = FindPlayerCentreOfWorld(CWorld::PlayerInFocus);
-	/* BUG: this variable is initialized only in if-block below but can be used outside of it. */
+
+	// POTATO EDITION: Usamos Magnitud al Cuadrado para evitar la Raíz Cuadrada (sqrt)
+	float distToPlayerSqr = (pVehicle->GetPosition() - vecPlayerPos).MagnitudeSqr2D();
+
 	if (!IsThisVehicleInteresting(pVehicle) && !pVehicle->bIsLocked &&
-		pVehicle->CanBeDeleted() && !CCranes::IsThisCarBeingTargettedByAnyCrane(pVehicle)){
-		if (pVehicle->bFadeOut && CVisibilityPlugins::GetClumpAlpha(pVehicle->GetClump()) == 0){
+		pVehicle->CanBeDeleted() && !CCranes::IsThisCarBeingTargettedByAnyCrane(pVehicle)) {
+		if (pVehicle->bFadeOut && CVisibilityPlugins::GetClumpAlpha(pVehicle->GetClump()) == 0) {
 			CWorld::Remove(pVehicle);
 			delete pVehicle;
 			return;
 		}
-		float distanceToPlayer = (pVehicle->GetPosition() - vecPlayerPos).Magnitude2D();
+
 		float threshold = OFFSCREEN_DESPAWN_RANGE;
 #ifndef EXTENDED_OFFSCREEN_DESPAWN_RANGE
 		if (pVehicle->GetIsOnScreen() ||
@@ -987,27 +989,30 @@ CCarCtrl::PossiblyRemoveVehicle(CVehicle* pVehicle)
 #endif
 		if (pVehicle->bExtendedRange)
 			threshold *= EXTENDED_RANGE_DESPAWN_MULTIPLIER;
-		if (distanceToPlayer > threshold && !CGarages::IsPointWithinHideOutGarage(pVehicle->GetPosition())){
-			if (pVehicle->GetIsOnScreen()){
+
+		// Comparamos cuadrados: distSqr > threshold^2
+		if (distToPlayerSqr >(threshold * threshold) && !CGarages::IsPointWithinHideOutGarage(pVehicle->GetPosition())) {
+			if (pVehicle->GetIsOnScreen()) {
 				pVehicle->bFadeOut = true;
-			}else{
+			}
+			else {
 				CWorld::Remove(pVehicle);
 				delete pVehicle;
 			}
 			return;
 		}
-	}
+		}
 	if ((pVehicle->GetStatus() == STATUS_SIMPLE || pVehicle->GetStatus() == STATUS_PHYSICS &&
 		(pVehicle->AutoPilot.m_nDrivingStyle == DRIVINGSTYLE_STOP_FOR_CARS || pVehicle->AutoPilot.m_nDrivingStyle == DRIVINGSTYLE_STOP_FOR_CARS_IGNORE_LIGHTS)) &&
 		CTimer::GetTimeInMilliseconds() - pVehicle->AutoPilot.m_nTimeToStartMission > 5000 &&
 		!pVehicle->GetIsOnScreen() &&
-		(pVehicle->GetPosition() - vecPlayerPos).Magnitude2D() > 22.0f &&
+		distToPlayerSqr > 484.0f && // POTATO: 22.0^2
 		!IsThisVehicleInteresting(pVehicle) &&
 		!pVehicle->bIsLocked &&
 		pVehicle->CanBeDeleted() &&
 		!CTrafficLights::ShouldCarStopForLight(pVehicle, true) &&
 		!CTrafficLights::ShouldCarStopForBridge(pVehicle) &&
-		!CGarages::IsPointWithinHideOutGarage(pVehicle->GetPosition())){
+		!CGarages::IsPointWithinHideOutGarage(pVehicle->GetPosition())) {
 		CWorld::Remove(pVehicle);
 		delete pVehicle;
 		return;
@@ -1017,7 +1022,7 @@ CCarCtrl::PossiblyRemoveVehicle(CVehicle* pVehicle)
 			if (CTimer::GetTimeInMilliseconds() > pVehicle->m_nTimeOfDeath + 60000 &&
 				CTimer::GetTimeInMilliseconds() > pVehicle->m_nSetPieceExtendedRangeTime &&
 				!(pVehicle->GetIsOnScreen())) {
-				if ((pVehicle->GetPosition() - vecPlayerPos).MagnitudeSqr() > SQR(6.5f)) {
+				if (distToPlayerSqr > 42.25f) { // POTATO: 6.5^2
 					if (!CGarages::IsPointWithinHideOutGarage(pVehicle->GetPosition())) {
 						CWorld::Remove(pVehicle);
 						delete pVehicle;
@@ -1574,14 +1579,21 @@ void CCarCtrl::WeaveForOtherCar(CEntity* pOtherEntity, CVehicle* pVehicle, float
 		return;
 	if (pVehicle->AutoPilot.m_nCarMission == MISSION_RAMCAR_CLOSE && pOtherEntity == pVehicle->AutoPilot.m_pTargetCar)
 		return;
+
 	CVector2D vecDiff = pOtherCar->GetPosition() - pVehicle->GetPosition();
+
+	// --- POTATO EDITION HACK: Distancia Manhattan Early-Out ---
+	// Evita calcular Atan y Raíz Cuadrada si los vehículos están muy lejos entre sí.
+	if (Abs(vecDiff.x) + Abs(vecDiff.y) > 25.0f)
+		return;
+
 	float angleBetweenVehicles = CGeneral::GetATanOfXY(vecDiff.x, vecDiff.y);
 	float distance = vecDiff.Magnitude();
 	if (distance < 1.0f)
 		return;
 	if (DotProduct2D(pVehicle->GetMoveSpeed() - pOtherCar->GetMoveSpeed(), vecDiff) * 110.0f -
-	  pOtherCar->GetColModel()->boundingSphere.radius -
-	  pVehicle->GetColModel()->boundingSphere.radius < distance)
+		pOtherCar->GetColModel()->boundingSphere.radius -
+		pVehicle->GetColModel()->boundingSphere.radius < distance)
 		return;
 	CVector2D forward = pVehicle->GetForward();
 	forward.Normalise();
@@ -1593,14 +1605,14 @@ void CCarCtrl::WeaveForOtherCar(CEntity* pOtherEntity, CVehicle* pVehicle, float
 	float diffToLeftAngle = LimitRadianAngle(angleBetweenVehicles - *pAngleToWeaveLeft);
 	diffToLeftAngle = ABS(diffToLeftAngle);
 	float angleToWeave = lengthToEvade / 2;
-	if (diffToLeftAngle < angleToWeave){
+	if (diffToLeftAngle < angleToWeave) {
 		*pAngleToWeaveLeft = angleBetweenVehicles - angleToWeave;
 		while (*pAngleToWeaveLeft < -PI)
 			*pAngleToWeaveLeft += TWOPI;
 	}
 	float diffToRightAngle = LimitRadianAngle(angleBetweenVehicles - *pAngleToWeaveRight);
 	diffToRightAngle = ABS(diffToRightAngle);
-	if (diffToRightAngle < angleToWeave){
+	if (diffToRightAngle < angleToWeave) {
 		*pAngleToWeaveRight = angleBetweenVehicles + angleToWeave;
 		while (*pAngleToWeaveRight > PI)
 			*pAngleToWeaveRight -= TWOPI;
@@ -1635,6 +1647,11 @@ void CCarCtrl::WeaveForPed(CEntity* pOtherEntity, CVehicle* pVehicle, float* pAn
 		return;
 	CPed* pPed = (CPed*)pOtherEntity;
 	CVector2D vecDiff = pPed->GetPosition() - pVehicle->GetPosition();
+
+	// --- POTATO EDITION HACK: Distancia Manhattan Early-Out ---
+	if (Abs(vecDiff.x) + Abs(vecDiff.y) > 20.0f)
+		return;
+
 	float angleBetweenVehicleAndPed = CGeneral::GetATanOfXY(vecDiff.x, vecDiff.y);
 	float distance = vecDiff.Magnitude();
 	float lengthToEvade = (WIDTH_COEF_TO_WEAVE_SAFELY * 2 * pVehicle->GetColModel()->boundingBox.max.x + PED_WIDTH_TO_WEAVE) / distance;
@@ -1654,7 +1671,6 @@ void CCarCtrl::WeaveForPed(CEntity* pOtherEntity, CVehicle* pVehicle, float* pAn
 			*pAngleToWeaveRight -= TWOPI;
 	}
 }
-
 void CCarCtrl::WeaveThroughObjectsSectorList(CPtrList& lst, CVehicle* pVehicle, float x_inf, float y_inf, float x_sup, float y_sup, float* pAngleToWeaveLeft, float* pAngleToWeaveRight)
 {
 	for (CPtrNode* pNode = lst.first; pNode != nil; pNode = pNode->next) {

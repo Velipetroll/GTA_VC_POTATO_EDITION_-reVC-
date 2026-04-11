@@ -271,7 +271,11 @@ RwChar *RwTextureGetName(RwTexture *texture) { return texture->name; }
 RwChar *RwTextureGetMaskName(RwTexture *texture);
 RwTexture *RwTextureSetRaster(RwTexture * texture, RwRaster * raster) { texture->raster = raster; return texture; }
 RwTexture   *RwTextureRead(const RwChar * name, const RwChar * maskName) { return Texture::read(name, maskName); }
-RwRaster *RwTextureGetRaster(const RwTexture *texture) { return texture->raster; }
+RwRaster *RwTextureGetRaster(const RwTexture *texture) {
+	// --- FIX POTATO EDITION: Escudo anti-crash para vidrios borrados ---
+	if (texture == nil) return nil;
+	return texture->raster;
+}
 RwInt32 RwTextureRegisterPlugin(RwInt32 size, RwUInt32 pluginID, RwPluginObjectConstructor constructCB, RwPluginObjectDestructor destructCB, RwPluginObjectCopy copyCB);
 RwInt32 RwTextureGetPluginOffset(RwUInt32 pluginID);
 RwBool RwTextureValidatePlugins(const RwTexture * texture);
