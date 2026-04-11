@@ -28,14 +28,31 @@ To achieve this extreme performance boost, the AI analyzed the RenderWare engine
 
 *(Note: We cannot build for PS2 or Xbox yet. If you have experience with console porting, get in touch via Discord!)*
 
-## ⚡ 100% AI-Driven Performance Optimizations (FPS Boost)
+## 🛠️ Technical Optimization Report (+60 FPS Boost)
 
+To achieve stable framerates on hardware like the Intel Atom N450 and GMA 3150, the RenderWare engine was surgically stripped of invisible background math and fillrate-heavy rendering techniques:
+
+### 1. World Management & Physics
 * **The Heat & CPU Patch (End of "Busy-Wait"):** Profiling revealed the engine spent nearly 60% of CPU time "waiting" (`rsIDLE`) for the next frame. By injecting a `Sleep(1)` command into the frame limiter, the engine yields control to Windows for 1 millisecond during idle times. **Result:** Massive performance stabilization and hardware temperatures dropping from 90°C to safe levels.
-* **Distance-Based Entity Time-Slicing:** Entity updates are scaled by distance. The further an NPC or vehicle is from the camera, the fewer frames it uses to update its AI, movement, and animations.
+* **Dynamic Object Culling:** Emptied `RepositionCertainDynamicObjects`. The engine no longer casts mathematical rays (`ProcessVerticalLine`) to recalculate the height of traffic lights or mailboxes; they now strictly use the map's native Z-height.
+* **Stunt Annihilation:** Gutted the heavy physics block that calculated spring compression and angles for unique jump bonuses. This grants massive framerate stability while driving.
+* **Flat Traffic Density:** The CPU no longer constantly scans path nodes to calculate traffic density. `m_fRoadDensity` is statically locked at `1.0f`.
 * **Aggressive Island Culling:** If Tommy is on one island, the engine is strictly prohibited from rendering *anything* from the other island, drastically reducing memory overhead.
-* **Flat Lighting & VFX Annihilation:** `Light.cpp` was completely emptied. Weather no longer visually affects surfaces, creating a flat, ultra-fast rendering pipeline. Heavy water math, 3D air modifiers, and particle systems have been purged.
-* **Total Glass Annihilation:** All vehicle windows (intact and damaged) are forced to 0% opacity, removing their polygons from the rendering pipeline to save massive fillrate on older GPUs.
-* **Mathematical Optimizations:** Replaced heavy CPU functions (`Sqrt` and `Atan2`) with lightweight "Manhattan Distance" approximations for entity visibility checks, saving thousands of clock cycles.
+
+### 2. AI & Lightweight Math
+* **`sqrt` Eradication:** Heavy square roots were replaced with "squared magnitudes" (`.MagnitudeSqr()`) to calculate distances. This drastically accelerated siren AI, dodging mechanics, flipped/stuck car detection, and vehicle removal routines (`PossiblyRemoveVehicle`).
+* **Distance-Based Entity Time-Slicing:** Entity updates are scaled by distance. The further an NPC or vehicle is from the camera, the fewer frames it uses to update its AI, movement, and animations. Roadblocks also utilize time-slicing (processed in batches every 16 frames) to prevent FPS drops at 3+ wanted stars.
+* **Reduced Police Proximity Checks:** Reduced unnecessary proximity math feeding the wanted level system.
+
+### 3. Rendering & Graphics (The Alpha-Blending Killers)
+The Intel GMA 3150 suffers massively with Alpha Blending (transparencies). The codebase was heavily modified to force opacity and destroy particle loops:
+* **The Square Radar (Chebyshev Math):** Vanilla Vice City draws a massive black polygon mask with alpha transparency over a square map to hide the corners and make it look round—a massive GPU drain. We deleted `DrawRadarMask()`. Furthermore, in `Radar.cpp` (`CRadar::LimitRadarPoint`), the Pythagorean trigonometry that glued blips to the edge of a circle was replaced with **"Chebyshev Distance"**, forcing icons to correctly snap to the straight edges of our new square radar.
+* **Mathematical Flat Water:** Disabled wave calculations entirely. The ocean is forced to a static solid color (R:15, G:60, B:100), blocking Alpha Blending so the water is no longer a burden on the GPU.
+* **Transparency Bypass (Solid Icons):** Used `RwIm2DRenderPrimitive` to force radar and weapon icons to render as solid blocks, maintaining crispness without the cost of alpha blending.
+* **Particle Annihilation (`Object.cpp`):** Gutted absolutely all loops generating yacht foam/wakes, plus dozens of debris, wood, leaf, and dust fragments when crashing into breakable objects. Objects still break and make sound, but draw zero transparencies.
+* **Total Glass Annihilation:** All vehicle windows (intact and damaged) are forced to 0% opacity, completely removing their polygons from the rendering pipeline to save massive fillrate.
+* **Flat Lighting & VFX Annihilation:** `Light.cpp` was completely emptied. Weather no longer visually affects surfaces, creating a flat, ultra-fast rendering pipeline.
+* **HUD Reorganization:** Health and Armor were moved to the bottom left (under the new square minimap). Wanted Stars were moved to Y: 65.0f (under the money) for a cleaner, more efficient layout at low resolutions.
 
 ## 🎮 AI-Coded Gameplay Features
 
