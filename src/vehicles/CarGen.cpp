@@ -84,26 +84,31 @@ void CCarGenerator::DoInternalProcessing()
 	CVehicle* pVehicle;
 
 	CVector pos;
-	if (CModelInfo::IsBoatModel(mi)) {
+	if (CModelInfo::IsBoatModel(mi)){
 		CBoat* pBoat = new CBoat(mi, PARKED_VEHICLE);
 		pos = m_vecPos;
 		pVehicle = pBoat;
 		if (pos.z <= -100.0f)
 			pos.z = CWorld::FindGroundZForCoord(pos.x, pos.y);
 		pBoat->bExtendedRange = true;
-	}
-	else {
-		// --- OPTIMIZACIÓN ATOM N450: Bypass de Raycasting para físicas ---
-		// Omitimos CWorld::FindGroundZFor3DCoord y ProcessVerticalLine.
-		// Estas funciones colapsan la CPU calculando colisiones con el mapa.
-		// Asumiremos que la coordenada Z base definida en el archivo de misiones es correcta.
+	}else{
+		bool groundFound;
 		pos = m_vecPos;
-
-		// Solo calculamos el suelo de forma "barata" si la Z es totalmente inválida (-100)
-		if (pos.z <= -100.0f) {
-			pos.z = CWorld::FindGroundZForCoord(pos.x, pos.y);
+		if (pos.z > -100.0f){
+			pos.z = CWorld::FindGroundZFor3DCoord(pos.x, pos.y, pos.z, &groundFound);
+		}else{
+			groundFound = false;
+			CColPoint cp;
+			CEntity* pEntity;
+			groundFound = CWorld::ProcessVerticalLine(CVector(pos.x, pos.y, 1000.0f), -1000.0f,
+				cp, pEntity, true, false, false, false, false, false, nil);
+			if (groundFound)
+				pos.z = cp.point.z;
 		}
-
+		if (!groundFound) {
+			debug("CCarGenerator::DoInternalProcessing - can't find ground z for new car x = %f y = %f \n", m_vecPos.x, m_vecPos.y);
+			return;
+		}
 		if (((CVehicleModelInfo*)CModelInfo::GetModelInfo(mi))->m_vehicleType == VEHICLE_TYPE_BIKE) {
 			CBike* pBike = new CBike(mi, PARKED_VEHICLE);
 			pBike->bIsStanding = true;
@@ -113,6 +118,7 @@ void CCarGenerator::DoInternalProcessing()
 			CAutomobile* pCar = new CAutomobile(mi, PARKED_VEHICLE);
 			pVehicle = pCar;
 		}
+		// pVehicle->GetDistanceFromCentreOfMassToBaseOfModel();
 		pVehicle->bLightsOn = false;
 	}
 	pVehicle->bIsStatic = false;
@@ -137,7 +143,7 @@ void CCarGenerator::DoInternalProcessing()
 	}
 	CVisibilityPlugins::SetClumpAlpha(pVehicle->GetClump(), 0);
 	m_nVehicleHandle = CPools::GetVehiclePool()->GetIndex(pVehicle);
-
+	/* I don't think this is a correct comparasion */
 #ifdef FIX_BUGS
 	if (m_nUsesRemaining < UINT16_MAX)
 		--m_nUsesRemaining;
@@ -152,14 +158,14 @@ void CCarGenerator::DoInternalProcessing()
 
 void CCarGenerator::Process()
 {
-	if (m_nVehicleHandle == -1 &&
+	if (m_nVehicleHandle == -1 && 
 		(CTheCarGenerators::GenerateEvenIfPlayerIsCloseCounter || CTimer::GetTimeInMilliseconds() >= m_nTimer) &&
 		m_nUsesRemaining != 0 && CheckIfWithinRangeOfAnyPlayers())
 		DoInternalProcessing();
 	if (m_nVehicleHandle == -1)
 		return;
 	CVehicle* pVehicle = CPools::GetVehiclePool()->GetAt(m_nVehicleHandle);
-	if (!pVehicle) {
+	if (!pVehicle){
 		m_nVehicleHandle = -1;
 		return;
 	}
@@ -175,6 +181,7 @@ void CCarGenerator::Process()
 
 void CCarGenerator::Setup(float x, float y, float z, float angle, int32 mi, int16 color1, int16 color2, uint8 force, uint8 alarm, uint8 lock, uint16 min_delay, uint16 max_delay)
 {
+	CMatrix m1, m2, m3; /* Unused but present on stack, so I'll leave them. */
 	m_vecPos = CVector(x, y, z);
 	m_fAngle = angle;
 	m_nModelIndex = mi;
@@ -210,23 +217,12 @@ bool CCarGenerator::CheckForBlockage(int32 mi)
 bool CCarGenerator::CheckIfWithinRangeOfAnyPlayers()
 {
 	CVector2D direction = FindPlayerCentreOfWorld(CWorld::PlayerInFocus) - m_vecPos;
-
-	// --- OPTIMIZACIÓN ATOM N450: Aproximación Manhattan ---
-	// En lugar de calcular direction.Magnitude() que gasta muchísimos ciclos haciendo Sqrt() (Raíces cuadradas),
-	// usamos una suma lineal rápida. Ahorro inmenso de FPU.
-	float absX = direction.x < 0.0f ? -direction.x : direction.x;
-	float absY = direction.y < 0.0f ? -direction.y : direction.y;
-	float distance = absX + absY;
-
-	float farclip = 110.0f * TheCamera.GenerationDistMultiplier * 1.3f; // Ajuste por usar aproximación Manhattan
+	float distance = direction.Magnitude();
+	float farclip = 110.0f * TheCamera.GenerationDistMultiplier;
 	float nearclip = farclip - 20.0f;
-
-	// --- OPTIMIZACIÓN ATOM/GMA: Bypass de Oclusión ---
-	// Hemos eliminado las llamadas matemáticas pesadas:
-	// TheCamera.IsSphereVisible() y COcclusion::IsPositionOccluded()
-	bool canBeRemoved = (m_nModelIndex > 0 && CModelInfo::IsBoatModel(m_nModelIndex) && 165.0f * TheCamera.GenerationDistMultiplier > distance);
-
-	if (distance >= farclip && !canBeRemoved) {
+	bool canBeRemoved = (m_nModelIndex > 0 && CModelInfo::IsBoatModel(m_nModelIndex) && 165.0f * TheCamera.GenerationDistMultiplier > distance &&
+		TheCamera.IsSphereVisible(m_vecPos, 0.0f) && !COcclusion::IsPositionOccluded(m_vecPos, 0.0f)); 
+	if (distance >= farclip && !canBeRemoved){
 		if (m_bIsBlocking)
 			m_bIsBlocking = false;
 		return false;
@@ -244,17 +240,10 @@ void CTheCarGenerators::Process()
 {
 	if (FindPlayerTrain() || CCutsceneMgr::IsCutsceneProcessing())
 		return;
-
-	// --- OPTIMIZACIÓN ATOM N450: Time-Slicing Agresivo ---
-	// El código original procesaba esto cada 4 frames.
-	// Ahora lo ralentizamos a 16 frames. 
-	// Reduce un 75% la carga de escaneo de memoria de vehículos.
-	if (++CTheCarGenerators::ProcessCounter >= 16)
+	if (++CTheCarGenerators::ProcessCounter == 4)
 		CTheCarGenerators::ProcessCounter = 0;
-
-	for (uint32 i = ProcessCounter; i < NumOfCarGenerators; i += 16)
+	for (uint32 i = ProcessCounter; i < NumOfCarGenerators; i += 4)
 		CTheCarGenerators::CarGeneratorArray[i].Process();
-
 	if (GenerateEvenIfPlayerIsCloseCounter)
 		GenerateEvenIfPlayerIsCloseCounter--;
 }
@@ -278,8 +267,8 @@ void CTheCarGenerators::SaveAllCarGenerators(uint8 *buffer, uint32 *size)
 {
 	const uint32 nGeneralDataSize = sizeof(NumOfCarGenerators) + sizeof(CurrentActiveCount) + sizeof(ProcessCounter) + sizeof(GenerateEvenIfPlayerIsCloseCounter) + sizeof(int16);
 	*size = sizeof(int) + nGeneralDataSize + sizeof(uint32) + sizeof(CarGeneratorArray) + SAVE_HEADER_SIZE;
-	INITSAVEBUF
-		WriteSaveHeader(buffer, 'C', 'G', 'N', '\0', *size - SAVE_HEADER_SIZE);
+INITSAVEBUF
+	WriteSaveHeader(buffer, 'C','G','N','\0', *size - SAVE_HEADER_SIZE);
 
 	WriteSaveBuf(buffer, nGeneralDataSize);
 	WriteSaveBuf(buffer, NumOfCarGenerators);
@@ -290,7 +279,7 @@ void CTheCarGenerators::SaveAllCarGenerators(uint8 *buffer, uint32 *size)
 	WriteSaveBuf(buffer, (uint32)sizeof(CarGeneratorArray));
 	for (int i = 0; i < NUM_CARGENS; i++)
 		WriteSaveBuf(buffer, CarGeneratorArray[i]);
-	VALIDATESAVEBUF(*size)
+VALIDATESAVEBUF(*size)
 }
 
 void CTheCarGenerators::LoadAllCarGenerators(uint8* buffer, uint32 size)
@@ -302,8 +291,8 @@ void CTheCarGenerators::LoadAllCarGenerators(uint8* buffer, uint32 size)
 
 	const int32 nGeneralDataSize = sizeof(NumOfCarGenerators) + sizeof(CurrentActiveCount) + sizeof(ProcessCounter) + sizeof(GenerateEvenIfPlayerIsCloseCounter) + sizeof(int16);
 	Init();
-	INITSAVEBUF
-		CheckSaveHeader(buffer, 'C', 'G', 'N', '\0', size - SAVE_HEADER_SIZE);
+INITSAVEBUF
+	CheckSaveHeader(buffer, 'C','G','N','\0', size - SAVE_HEADER_SIZE);
 	uint32 tmp;
 	ReadSaveBuf(&tmp, buffer);
 	assert(tmp == nGeneralDataSize);
@@ -314,7 +303,7 @@ void CTheCarGenerators::LoadAllCarGenerators(uint8* buffer, uint32 size)
 	SkipSaveBuf(buffer, 2);
 	ReadSaveBuf(&tmp, buffer);
 	assert(tmp == sizeof(CarGeneratorArray));
-	for (int i = 0; i < NUM_CARGENS; i++)
+	for (int i = 0; i < NUM_CARGENS; i++) 
 		ReadSaveBuf(&CarGeneratorArray[i], buffer);
-	VALIDATESAVEBUF(size)
+VALIDATESAVEBUF(size)
 }

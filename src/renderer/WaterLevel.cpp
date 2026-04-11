@@ -314,17 +314,10 @@ CWaterLevel::RenderWater()
 #ifdef PC_WATER
 	_fWaterZOffset = CWeather::WindClipped * 0.5f + 0.25f;
 #endif
-
-	RwRGBA color = { 0, 0, 0, 255 };
-	color.red = CTimeCycle::GetWaterRed();
-	color.green = CTimeCycle::GetWaterGreen();
-	color.blue = CTimeCycle::GetWaterBlue();
+	RwRGBA color = { 15, 60, 100, 255 };
 
 #ifndef PC_WATER
-	RwRGBA colorUnderwater = { 0, 0, 0, 255 };
-	colorUnderwater.red = (uint32)(0.8f * (float)colorUnderwater.red);
-	colorUnderwater.green = (uint32)(0.8f * (float)colorUnderwater.green);
-	colorUnderwater.blue = (uint32)(0.8f * (float)colorUnderwater.blue);
+	RwRGBA colorUnderwater = { 15, 60, 100, 255 };
 #endif
 
 	TempBufferVerticesStored = 0;
@@ -470,22 +463,20 @@ CWaterLevel::RenderTransparentWater(void)
 	float fHugeSectorMaxRenderDist = _GetWaterDrawDist();
 	float fHugeSectorMaxRenderDistSqr = SQR(fHugeSectorMaxRenderDist);
 
-	RwRGBA color;
-	color.red = CTimeCycle::GetWaterRed();
-	color.green = CTimeCycle::GetWaterGreen();
-	color.blue = CTimeCycle::GetWaterBlue();
-	color.alpha = 255;
+	RwRGBA color = { 15, 60, 100, 255 };
 
-	RwRGBA colorTrans;
-	colorTrans.red = CTimeCycle::GetWaterRed();
-	colorTrans.green = CTimeCycle::GetWaterGreen();
-	colorTrans.blue = CTimeCycle::GetWaterBlue();
-	colorTrans.alpha = CTimeCycle::GetWaterAlpha();
+	RwRGBA colorTrans = { 15, 60, 100, 255 };
 
 	TempBufferVerticesStored = 0;
 	TempBufferIndicesStored = 0;
 
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, (void *)gpWaterRaster);
+
+	// --- POTATO EDITION: Destruimos el Alpha Blending a nivel de hardware ---
+	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void *)FALSE);
+	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void *)rwBLENDONE);
+	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void *)rwBLENDZERO);
+
 #ifndef PC_WATER
 	RwRenderStateSet(rwRENDERSTATEFOGENABLE, (void *)TRUE);
 	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void *)rwBLENDSRCALPHA);
