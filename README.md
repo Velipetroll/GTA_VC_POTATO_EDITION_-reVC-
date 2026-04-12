@@ -30,7 +30,7 @@ To achieve this extreme performance boost, the AI analyzed the RenderWare engine
 
 ## 🛠️ Technical Optimization Report (+60 FPS Boost)
 
-To achieve stable framerates on hardware like the Intel Atom N450 and GMA 3150, the RenderWare engine was surgically stripped of invisible background math and fillrate-heavy rendering techniques:
+To achieve stable framerates on legacy hardware, the RenderWare engine was surgically stripped of invisible background math and fillrate-heavy rendering techniques:
 
 ### 1. World Management & Physics
 * **The Heat & CPU Patch (End of "Busy-Wait"):** Profiling revealed the engine spent nearly 60% of CPU time "waiting" (`rsIDLE`) for the next frame. By injecting a `Sleep(1)` command into the frame limiter, the engine yields control to Windows for 1 millisecond during idle times. **Result:** Massive performance stabilization and hardware temperatures dropping from 90°C to safe levels.
@@ -42,23 +42,54 @@ To achieve stable framerates on hardware like the Intel Atom N450 and GMA 3150, 
 ### 2. AI & Lightweight Math
 * **`sqrt` Eradication:** Heavy square roots were replaced with "squared magnitudes" (`.MagnitudeSqr()`) to calculate distances. This drastically accelerated siren AI, dodging mechanics, flipped/stuck car detection, and vehicle removal routines (`PossiblyRemoveVehicle`).
 * **Distance-Based Entity Time-Slicing:** Entity updates are scaled by distance. The further an NPC or vehicle is from the camera, the fewer frames it uses to update its AI, movement, and animations. Roadblocks also utilize time-slicing (processed in batches every 16 frames) to prevent FPS drops at 3+ wanted stars.
-* **Reduced Police Proximity Checks:** Reduced unnecessary proximity math feeding the wanted level system.
 
 ### 3. Rendering & Graphics (The Alpha-Blending Killers)
 The Intel GMA 3150 suffers massively with Alpha Blending (transparencies). The codebase was heavily modified to force opacity and destroy particle loops:
 * **The Square Radar (Chebyshev Math):** Vanilla Vice City draws a massive black polygon mask with alpha transparency over a square map to hide the corners and make it look round—a massive GPU drain. We deleted `DrawRadarMask()`. Furthermore, in `Radar.cpp` (`CRadar::LimitRadarPoint`), the Pythagorean trigonometry that glued blips to the edge of a circle was replaced with **"Chebyshev Distance"**, forcing icons to correctly snap to the straight edges of our new square radar.
 * **Mathematical Flat Water:** Disabled wave calculations entirely. The ocean is forced to a static solid color (R:15, G:60, B:100), blocking Alpha Blending so the water is no longer a burden on the GPU.
-* **Transparency Bypass (Solid Icons):** Used `RwIm2DRenderPrimitive` to force radar and weapon icons to render as solid blocks, maintaining crispness without the cost of alpha blending.
+* **Transparency Bypass (Solid Icons):** Used `RwIm2DRenderPrimitive` to force radar and weapon icons to render as solid blocks.
 * **Particle Annihilation (`Object.cpp`):** Gutted absolutely all loops generating yacht foam/wakes, plus dozens of debris, wood, leaf, and dust fragments when crashing into breakable objects. Objects still break and make sound, but draw zero transparencies.
-* **Total Glass Annihilation:** All vehicle windows (intact and damaged) are forced to 0% opacity, completely removing their polygons from the rendering pipeline to save massive fillrate.
-* **Flat Lighting & VFX Annihilation:** `Light.cpp` was completely emptied. Weather no longer visually affects surfaces, creating a flat, ultra-fast rendering pipeline.
+* **Total Glass Annihilation:** All vehicle windows (intact and damaged) are forced to 0% opacity, completely removing their polygons from the rendering pipeline.
 * **HUD Reorganization:** Health and Armor were moved to the bottom left (under the new square minimap). Wanted Stars were moved to Y: 65.0f (under the money) for a cleaner, more efficient layout at low resolutions.
 
-## 🎮 AI-Coded Gameplay Features
+---
 
-* **Quick Save System (F6):** A seamless quick-save feature injected directly into the main game loop (`Game.cpp`). Pressing F6 intercepts keyboard input and triggers the official save menu (`m_bActivateSaveMenu`), allowing safe saves anywhere without file corruption.
-* **True First-Person Camera:** Drive from Tommy Vercetti's actual perspective! A fully AI-programmed FPS view that dynamically adjusts based on the vehicle type.
-* **Crash-Proof Shielding:** Texture destruction functions (Garbage Collection) were patched to prevent unexpected engine crashes when loading new save files.
+## 🔬 Deep-Dive Technical Autopsy (Code Rewrites)
+
+For fellow developers and reverse-engineers, here is the exact autopsy of the RenderWare logic we manipulated at the memory and mathematical levels to achieve our new gameplay features without crashing the legacy engine:
+
+### 1. The Zero-Crash Invisible Head Hack (`CPed::Render`)
+To make the First-Person view work without the camera clipping inside Tommy's model, we needed to hide his head. Attempting to delete textures or skip geometry calls caused crashes. Instead, we used a **Bone Squashing Hack**:
+* **The Target:** We accessed the advanced skeletal hierarchy (`HAnim`) via `GetAnimHierarchyFromSkinClump()` and located the exact index of the head bone using `RpHAnimIDGetIndex(..., PED_HEAD)`.
+* **The Backup:** *Before* squashing the head, we created a perfect memory backup of the 4x4 matrix (`matrizOriginal = *pMatrizCabeza;`). This was vital to prevent the game from exploding when entering vehicles.
+* **The Execution:** We applied `RwMatrixScale(..., &escalaCero, ...)` to multiply the head matrix by `0.0`. We then called `CPed::Render()`. Since the head size was zero, the GPU skipped drawing it entirely.
+* **The Restore:** Immediately after the draw call, we restored the original matrix (`*pMatrizCabeza = matrizOriginal;`). The GPU is tricked into not rendering the head, but the CPU physics and collision engine still believes the head is there, preventing any Inverse Kinematics (IK) divide-by-zero crashes.
+
+### 2. Advanced 1st-Person Camera & Dynamic FOV (`src/core/Camera.cpp`)
+* **Gimbal Lock Prevention:** In `CCamera::Process()`, we anchored the global reference vector to `CVector globalUp(0.0f, 0.0f, 1.0f)`. Using CrossProducts, we obtained a purely orthogonal `Right` vector. This eliminates local Z-axis roll (motion sickness) while allowing free X-axis pitch (looking at the sky while popping a wheelie).
+* **2D Rotation Matrix (Mouse Pan):** We read the raw hardware delta using `CPad::GetPad(0)->NewMouseControllerState.x` and applied trigonometric rotation (cos/sin over `s_fLookPan`) directly to the X/Y components of the `CamFront` unit vector. 
+* **Temporal Interpolation (Auto-Center):** Implemented a timer (`CTimer::GetTimeInMilliseconds()`). If the delta exceeds 3000ms, a Lerp (Linear Interpolation) function smoothly decrements `s_fLookPan` back to 0.0, scaling perfectly with `CTimer::GetTimeStep()`.
+* **Frustum Culling Recalculation:** Injected `CalculateDerivedValues();` at the end of the free-look function. This forces the engine to recalculate the 6 planes of the View Frustum. Without this, turning the camera with the mouse would cause the world to disappear because the engine culled polygons based on the player's forward vector.
+* **Dynamic FOV:** Added a dynamic FOV using Lerp interpolation just before the `CDraw::SetFOV(FOV)` call. This ensures FOV transitions are silk-smooth, even during FPS drops, and fluidly return to normal when braking.
+
+### 3. Bike Physics & Animation Decoupling (`src/vehicles/Bike.cpp`)
+* **State Hijacking:** Inside `CBike::ProcessControl(void)`, we hijacked an inactive variable (`m_bike_unused1`) to store the actual lean input float (`m_fLeanInput`). 
+* **Animation Bypass:** If the camera is in `1STPERSON`, we force `m_fLeanInput = 0.0f` right before the end of the integration block. This tricks the subsequent `CPed` evaluator, preventing it from assigning a blend weight to the `CAnimBlendAssociation` structures (`ANIM_BIKE_LEANB` and `ANIM_BIKE_LEANF`), thereby locking the torso bones and keeping the 1st person camera perfectly stable.
+* **Aerodynamic Refactor:** Vanilla physics tied speed/drag to visual animation timing (`assoc->currentTime > 0.06f`). We broke this dependency by reading raw hardware input (`m_fLeanInput > 0.15f`) to reduce the friction coefficient (`m_fAirResistance *= 0.6f`) and mathematically applying frontal force multiplied by mass and gravity.
+
+### 4. Low-Cost Incandescence Effect (`src/vehicles/Automobile.cpp`)
+The most "performance-cheap" way to add an immersive blinking/glowing effect for low-end hardware. Instead of generating new geometry or transparent layers that choke the GMA 3150, we bypassed heavy material iteration. In `CAutomobile::Render()`, we trick the game by changing the car's color index right before it is sent to the GPU, and restoring it immediately after. 
+
+### 5. Pseudo-3D Audio (Linear Attenuation) (`src/audio/oam/MusicManager.cpp`)
+Real 3D audio (Doppler effect, reverb, directional panning) eats precious CPU cycles. To emulate modern GTA games (hearing the radio outside the car) on an Atom N450, we implemented a "Fake 3D" attenuation hack. We keep the standard 2D radio stream active when exiting a vehicle, but attenuate its volume mathematically based on Tommy's distance from the car:
+* **0 meters:** 100% Volume
+* **7.5 meters:** 50% Volume
+* **15+ meters:** 0% Volume (Radio shuts off)
+
+### 6. Seamless F11 Fullscreen Toggle (`src/skel/events.cpp`)
+Inside `HandleKeyDown(RsKeyStatus *keyStatus)`, we injected a new `case rsF11:` in the main OS keyboard event dispatcher. We directly invert `FrontEndMenuManager` booleans (`m_nPrefsWindowed` and `m_nSelectedScreenMode`) and call the external function `_psSelectScreenVM()`. This forces the API (D3D9/OpenGL) to destroy the window context and recreate the swapchain dynamically with the new resolution parameters, completely bypassing a main thread restart.
+
+---
 
 ## 💾 Installation Guide
 
