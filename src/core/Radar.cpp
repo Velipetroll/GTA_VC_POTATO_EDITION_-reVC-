@@ -1,4 +1,4 @@
-#if (!defined(GTA_PS2_STUFF) && defined(RWLIBS)) || defined(__MWERKS__)
+﻿#if (!defined(GTA_PS2_STUFF) && defined(RWLIBS)) || defined(__MWERKS__)
 #define WITHD3D
 #endif
 #include "config.h"
@@ -70,7 +70,7 @@ CSprite2d CRadar::RadioWaveSprite;
 CSprite2d CRadar::WaypointSprite;
 #endif
 
-CSprite2d *CRadar::RadarSprites[RADAR_SPRITE_COUNT] = { 
+CSprite2d *CRadar::RadarSprites[RADAR_SPRITE_COUNT] = {
 	nil,
 	&CentreSprite,
 	&MapHereSprite,
@@ -116,7 +116,6 @@ CSprite2d *CRadar::RadarSprites[RADAR_SPRITE_COUNT] = {
 #endif
 };
 
-// Why this doesn't coincide with world coordinates i don't know
 #define RADAR_MIN_X (-2000.0f)
 #define RADAR_MIN_Y (-2000.0f)
 #define RADAR_MAX_X (2000.0f)
@@ -149,12 +148,12 @@ void ClipRadarTileCoords(int32 &x, int32 &y)
 {
 	if (x < 0)
 		x = 0;
-	if (x > RADAR_NUM_TILES-1)
-		x = RADAR_NUM_TILES-1;
+	if (x > RADAR_NUM_TILES - 1)
+		x = RADAR_NUM_TILES - 1;
 	if (y < 0)
 		y = 0;
-	if (y > RADAR_NUM_TILES-1)
-		y = RADAR_NUM_TILES-1;
+	if (y > RADAR_NUM_TILES - 1)
+		y = RADAR_NUM_TILES - 1;
 }
 
 void RequestMapSection(int32 x, int32 y)
@@ -169,42 +168,36 @@ void RemoveMapSection(int32 x, int32 y)
 		CStreaming::RemoveTxd(gRadarTxdIds[x + RADAR_NUM_TILES * y]);
 }
 
-// Transform from section indices to world coordinates
 void GetTextureCorners(int32 x, int32 y, CVector2D *out)
 {
-	x =   x - RADAR_NUM_TILES/2;
-	y = -(y - RADAR_NUM_TILES/2);
+	x = x - RADAR_NUM_TILES / 2;
+	y = -(y - RADAR_NUM_TILES / 2);
 
-	// bottom left
 	out[0].x = RADAR_TILE_SIZE * (x);
 	out[0].y = RADAR_TILE_SIZE * (y - 1);
 
-	// bottom right
 	out[1].x = RADAR_TILE_SIZE * (x + 1);
 	out[1].y = RADAR_TILE_SIZE * (y - 1);
 
-	// top right
 	out[2].x = RADAR_TILE_SIZE * (x + 1);
 	out[2].y = RADAR_TILE_SIZE * (y);
 
-	// top left
 	out[3].x = RADAR_TILE_SIZE * (x);
 	out[3].y = RADAR_TILE_SIZE * (y);
 }
 
+// =========================================================================
+// --- POTATO EDITION: SIMPLIFICACI�N DE ALFA EN ICONOS ---
+// =========================================================================
 uint8 CRadar::CalculateBlipAlpha(float dist)
 {
-	if (FrontEndMenuManager.m_bMenuMapActive)
-		return 255;
+	if (FrontEndMenuManager.m_bMenuMapActive) return 255;
+	if (dist <= 1.0f) return 255;
 
-	if (dist <= 1.0f)
-		return 255;
-
-	if (dist <= 10.0f)
-		return (128.0f * ((dist - 1.0f) / 9.0f)) + ((1.0f - (dist - 1.0f) / 9.0f) * 255.0f);
-
+	// Eliminada la matem�tica de desvanecimiento progresivo
 	return 128;
 }
+// =========================================================================
 
 void CRadar::ChangeBlipBrightness(int32 i, int32 bright)
 {
@@ -259,9 +252,7 @@ void CRadar::ClearBlipForEntity(eBlipType type, int32 id)
 	};
 }
 
-// Why not a proper clipping algorithm?
 #ifdef THIS_IS_STUPID
-
 bool IsPointInsideRadar(const CVector2D &point)
 {
 	if (point.x < -1.0f || point.x > 1.0f) return false;
@@ -269,7 +260,6 @@ bool IsPointInsideRadar(const CVector2D &point)
 	return true;
 }
 
-// clip line p1,p2 against (-1.0, 1.0) in x and y, set out to clipped point closest to p1
 int LineRadarBoxCollision(CVector2D &out, const CVector2D &p1, const CVector2D &p2)
 {
 	float d1, d2;
@@ -278,11 +268,9 @@ int LineRadarBoxCollision(CVector2D &out, const CVector2D &p1, const CVector2D &
 	float shortest = 1.0f;
 	int edge = -1;
 
-	// clip against left edge, x = -1.0
 	d1 = -1.0f - p1.x;
 	d2 = -1.0f - p2.x;
 	if (d1 * d2 < 0.0f) {
-		// they are on opposite sides, get point of intersection
 		t = d1 / (d1 - d2);
 		y = (p2.y - p1.y)*t + p1.y;
 		if (y >= -1.0f && y <= 1.0f && t <= shortest) {
@@ -293,11 +281,9 @@ int LineRadarBoxCollision(CVector2D &out, const CVector2D &p1, const CVector2D &
 		}
 	}
 
-	// clip against right edge, x = 1.0
 	d1 = p1.x - 1.0f;
 	d2 = p2.x - 1.0f;
 	if (d1 * d2 < 0.0f) {
-		// they are on opposite sides, get point of intersection
 		t = d1 / (d1 - d2);
 		y = (p2.y - p1.y)*t + p1.y;
 		if (y >= -1.0f && y <= 1.0f && t <= shortest) {
@@ -308,11 +294,9 @@ int LineRadarBoxCollision(CVector2D &out, const CVector2D &p1, const CVector2D &
 		}
 	}
 
-	// clip against top edge, y = -1.0
 	d1 = -1.0f - p1.y;
 	d2 = -1.0f - p2.y;
 	if (d1 * d2 < 0.0f) {
-		// they are on opposite sides, get point of intersection
 		t = d1 / (d1 - d2);
 		x = (p2.x - p1.x)*t + p1.x;
 		if (x >= -1.0f && x <= 1.0f && t <= shortest) {
@@ -323,11 +307,9 @@ int LineRadarBoxCollision(CVector2D &out, const CVector2D &p1, const CVector2D &
 		}
 	}
 
-	// clip against bottom edge, y = 1.0
 	d1 = p1.y - 1.0f;
 	d2 = p2.y - 1.0f;
 	if (d1 * d2 < 0.0f) {
-		// they are on opposite sides, get point of intersection
 		t = d1 / (d1 - d2);
 		x = (p2.x - p1.x)*t + p1.x;
 		if (x >= -1.0f && x <= 1.0f && t <= shortest) {
@@ -344,10 +326,10 @@ int LineRadarBoxCollision(CVector2D &out, const CVector2D &p1, const CVector2D &
 int CRadar::ClipRadarPoly(CVector2D *poly, const CVector2D *rect)
 {
 	CVector2D corners[4] = {
-		CVector2D(  1.0f, -1.0f ),	// top right
-		CVector2D(  1.0f,  1.0f ),	// bottom right
-		CVector2D( -1.0f,  1.0f ),	// bottom left
-		CVector2D( -1.0f, -1.0f ),	// top left
+		CVector2D(1.0f, -1.0f),
+		CVector2D(1.0f,  1.0f),
+		CVector2D(-1.0f,  1.0f),
+		CVector2D(-1.0f, -1.0f),
 	};
 	CVector2D tmp;
 	int i, j, n;
@@ -361,28 +343,19 @@ int CRadar::ClipRadarPoly(CVector2D *poly, const CVector2D *rect)
 	n = 0;
 	for (i = 0; i < 4; i++)
 		if (inside[i]) {
-			// point is inside, just add
 			poly[n++] = rect[i];
 		}
 		else {
-			// point is outside but line to this point might be clipped
 			e1 = LineRadarBoxCollision(poly[n], rect[i], rect[(i + 4 - 1) % 4]);
 			if (e1 != -1) {
 				laste = e1;
 				n++;
 			}
-			// and line from this point might be clipped as well
 			e2 = LineRadarBoxCollision(poly[n], rect[i], rect[(i + 1) % 4]);
 			if (e2 != -1) {
 				if (e1 == -1) {
-					// if other line wasn't clipped, i.e. it was complete outside,
-					// we may have to insert another vertex if last clipped line
-					// was on a different edge
-
-					// find the last intersection if we haven't seen it yet
 					if (laste == -1)
 						for (j = 3; j >= i; j--) {
-							// game uses an if here for j == 0
 							e = LineRadarBoxCollision(tmp, rect[j], rect[(j + 4 - 1) % 4]);
 							if (e != -1) {
 								laste = e;
@@ -391,7 +364,6 @@ int CRadar::ClipRadarPoly(CVector2D *poly, const CVector2D *rect)
 						}
 					assert(laste != -1);
 
-					// insert corners that were skipped
 					tmp = poly[n];
 					for (e = laste; e != e2; e = (e + 1) % 4)
 						poly[n++] = corners[e];
@@ -401,23 +373,21 @@ int CRadar::ClipRadarPoly(CVector2D *poly, const CVector2D *rect)
 			}
 		}
 
-	if (n == 0) {
-		// If no points, either the rectangle is completely outside or completely surrounds the radar
-		// no idea what's going on here...
-		float m = (rect[0].y - rect[1].y) / (rect[0].x - rect[1].x);
-		if ((m*rect[3].x - rect[3].y) * (m*rect[0].x - rect[0].y) < 0.0f) {
-			m = (rect[0].y - rect[3].y) / (rect[0].x - rect[3].x);
-			if ((m*rect[1].x - rect[1].y) * (m*rect[0].x - rect[0].y) < 0.0f) {
-				poly[0] = corners[0];
-				poly[1] = corners[1];
-				poly[2] = corners[2];
-				poly[3] = corners[3];
-				n = 4;
+		if (n == 0) {
+			float m = (rect[0].y - rect[1].y) / (rect[0].x - rect[1].x);
+			if ((m*rect[3].x - rect[3].y) * (m*rect[0].x - rect[0].y) < 0.0f) {
+				m = (rect[0].y - rect[3].y) / (rect[0].x - rect[3].x);
+				if ((m*rect[1].x - rect[1].y) * (m*rect[0].x - rect[0].y) < 0.0f) {
+					poly[0] = corners[0];
+					poly[1] = corners[1];
+					poly[2] = corners[2];
+					poly[3] = corners[3];
+					n = 4;
+				}
 			}
 		}
-	}
 
-	return n;
+		return n;
 }
 #else
 
@@ -430,17 +400,17 @@ ClipPolyPlane(const CVector2D *in, int nin, CVector2D *out, CVector *plane)
 	float d1, d2, t;
 
 	nout = 0;
-	for(j = 0; j < nin; j++){
+	for (j = 0; j < nin; j++) {
 		x1 = j;
-		x2 = (j+1) % nin;
+		x2 = (j + 1) % nin;
 
 		d1 = plane->x*in[x1].x + plane->y*in[x1].y + plane->z;
 		d2 = plane->x*in[x2].x + plane->y*in[x2].y + plane->z;
-		if(d1*d2 < 0.0f){
-			t = d1/(d1 - d2);
-			out[nout++] = in[x1]*(1.0f-t) + in[x2]*t;
+		if (d1*d2 < 0.0f) {
+			t = d1 / (d1 - d2);
+			out[nout++] = in[x1] * (1.0f - t) + in[x2] * t;
 		}
-		if(d2 >= 0.0f)
+		if (d2 >= 0.0f)
 			out[nout++] = in[x2];
 	}
 	return nout;
@@ -450,16 +420,16 @@ int CRadar::ClipRadarPoly(CVector2D *poly, const CVector2D *rect)
 {
 	CVector planes[4] = {
 		CVector(-1.0f, 0.0f, 1.0f),
-		CVector( 1.0f, 0.0f, 1.0f),
+		CVector(1.0f, 0.0f, 1.0f),
 		CVector(0.0f, -1.0f, 1.0f),
 		CVector(0.0f,  1.0f, 1.0f)
 	};
 	CVector2D tmp[8];
 	int n;
-	if(n = ClipPolyPlane(rect, 4, tmp, &planes[0]), n == 0) return 0;
-	if(n = ClipPolyPlane(tmp, n, poly, &planes[1]), n == 0) return 0;
-	if(n = ClipPolyPlane(poly, n, tmp, &planes[2]), n == 0) return 0;
-	if(n = ClipPolyPlane(tmp, n, poly, &planes[3]), n == 0) return 0;
+	if (n = ClipPolyPlane(rect, 4, tmp, &planes[0]), n == 0) return 0;
+	if (n = ClipPolyPlane(tmp, n, poly, &planes[1]), n == 0) return 0;
+	if (n = ClipPolyPlane(poly, n, tmp, &planes[2]), n == 0) return 0;
+	if (n = ClipPolyPlane(tmp, n, poly, &planes[3]), n == 0) return 0;
 	return n;
 }
 #endif
@@ -495,7 +465,7 @@ void CRadar::Draw3dMarkers()
 				CEntity *entity = CPools::GetPedPool()->GetAt(ms_RadarTrace[i].m_nEntityHandle);
 				if (entity != nil) {
 					if (((CPed*)entity)->InVehicle())
-						entity = ((CPed * )entity)->m_pMyVehicle;
+						entity = ((CPed *)entity)->m_pMyVehicle;
 				}
 				if (ms_RadarTrace[i].m_eBlipDisplay == BLIP_DISPLAY_BOTH || ms_RadarTrace[i].m_eBlipDisplay == BLIP_DISPLAY_MARKER_ONLY) {
 					CVector pos = entity->GetPosition();
@@ -567,76 +537,75 @@ void CRadar::DrawBlips()
 			DrawRadarSprite(RADAR_SPRITE_NORTH, out.x, out.y, 255);
 		}
 
-		for(int blipId = 0; blipId < NUMRADARBLIPS; blipId++) {
+		for (int blipId = 0; blipId < NUMRADARBLIPS; blipId++) {
 			if (!ms_RadarTrace[blipId].m_bInUse)
 				continue;
 
 			switch (ms_RadarTrace[blipId].m_eBlipType) {
-				case BLIP_CAR:
-				case BLIP_CHAR:
-				case BLIP_OBJECT:
-					if (ms_RadarTrace[blipId].m_eRadarSprite == RADAR_SPRITE_PROPERTY
-						&& (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive))
-						DrawEntityBlip(blipId);
+			case BLIP_CAR:
+			case BLIP_CHAR:
+			case BLIP_OBJECT:
+				if (ms_RadarTrace[blipId].m_eRadarSprite == RADAR_SPRITE_PROPERTY
+					&& (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive))
+					DrawEntityBlip(blipId);
 
-					break;
-				case BLIP_COORD:
-				case BLIP_CONTACT_POINT:
-					if (ms_RadarTrace[blipId].m_eRadarSprite == RADAR_SPRITE_PHONE
-						&& (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive))
-						DrawCoordBlip(blipId);
-					
-					break;
-				default:
-					break;
+				break;
+			case BLIP_COORD:
+			case BLIP_CONTACT_POINT:
+				if (ms_RadarTrace[blipId].m_eRadarSprite == RADAR_SPRITE_PHONE
+					&& (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive))
+					DrawCoordBlip(blipId);
+
+				break;
+			default:
+				break;
 			}
 		}
 
-		// New in VC: Always draw Hardware/gun/pay'n spray/save blips
-		for(int blipId = 0; blipId < NUMRADARBLIPS; blipId++) {
+		for (int blipId = 0; blipId < NUMRADARBLIPS; blipId++) {
 			if (!ms_RadarTrace[blipId].m_bInUse)
 				continue;
 
 			if (ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SAVE && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_HARDWARE
-					&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SPRAY && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_GUN)
+				&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SPRAY && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_GUN)
 				continue;
 
 			switch (ms_RadarTrace[blipId].m_eBlipType) {
-				case BLIP_CAR:
-				case BLIP_CHAR:
-				case BLIP_OBJECT:
-					if (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive)
-						DrawEntityBlip(blipId);
+			case BLIP_CAR:
+			case BLIP_CHAR:
+			case BLIP_OBJECT:
+				if (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive)
+					DrawEntityBlip(blipId);
 
-					break;
-				case BLIP_COORD:
-				case BLIP_CONTACT_POINT:
-					if (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive)
-						DrawCoordBlip(blipId);
-					
-					break;
-				default:
-					break;
+				break;
+			case BLIP_COORD:
+			case BLIP_CONTACT_POINT:
+				if (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive)
+					DrawCoordBlip(blipId);
+
+				break;
+			default:
+				break;
 			}
 		}
 
-		for(int blipId = 0; blipId < NUMRADARBLIPS; blipId++) {
+		for (int blipId = 0; blipId < NUMRADARBLIPS; blipId++) {
 			if (!ms_RadarTrace[blipId].m_bInUse)
 				continue;
 
 			switch (ms_RadarTrace[blipId].m_eBlipType) {
-				case BLIP_CAR:
-				case BLIP_CHAR:
-				case BLIP_OBJECT:
-					if (ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SAVE && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_HARDWARE
-						&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SPRAY && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_PROPERTY
-						&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_GUN
-						&& (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive))
+			case BLIP_CAR:
+			case BLIP_CHAR:
+			case BLIP_OBJECT:
+				if (ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SAVE && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_HARDWARE
+					&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SPRAY && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_PROPERTY
+					&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_GUN
+					&& (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive))
 
-						DrawEntityBlip(blipId);
-					break;
-				default:
-					break;
+					DrawEntityBlip(blipId);
+				break;
+			default:
+				break;
 			}
 		}
 		for (int blipId = 0; blipId < NUMRADARBLIPS; blipId++) {
@@ -644,17 +613,17 @@ void CRadar::DrawBlips()
 				continue;
 
 			switch (ms_RadarTrace[blipId].m_eBlipType) {
-				case BLIP_COORD:
-				case BLIP_CONTACT_POINT:
-					if (ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SAVE && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_HARDWARE
-						&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SPRAY && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_PROPERTY
-						&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_GUN && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_PHONE
-						&& (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive))
+			case BLIP_COORD:
+			case BLIP_CONTACT_POINT:
+				if (ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SAVE && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_HARDWARE
+					&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_SPRAY && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_PROPERTY
+					&& ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_GUN && ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_PHONE
+					&& (!CTheScripts::bPlayerIsInTheStatium || !FrontEndMenuManager.m_bMenuMapActive))
 
-						DrawCoordBlip(blipId);
-					break;
-				default:
-					break;
+					DrawCoordBlip(blipId);
+				break;
+			default:
+				break;
 			}
 		}
 		if (FrontEndMenuManager.m_bMenuMapActive) {
@@ -680,7 +649,7 @@ void CRadar::DrawMap()
 			if (speed < RADAR_MIN_SPEED)
 				m_radarRange = RADAR_MIN_RANGE;
 			else if (speed < RADAR_MAX_SPEED)
-				m_radarRange = (speed - RADAR_MIN_SPEED)/(RADAR_MAX_SPEED-RADAR_MIN_SPEED) * (RADAR_MAX_RANGE-RADAR_MIN_RANGE) + RADAR_MIN_RANGE;
+				m_radarRange = (speed - RADAR_MIN_SPEED) / (RADAR_MAX_SPEED - RADAR_MIN_SPEED) * (RADAR_MAX_RANGE - RADAR_MIN_RANGE) + RADAR_MIN_RANGE;
 			else
 				m_radarRange = RADAR_MAX_RANGE;
 		}
@@ -697,7 +666,6 @@ void CRadar::DrawRadarMap()
 {
 	DrawRadarMask();
 
-	// top left ist (0, 0)
 	int x = Floor((vec2DRadarOrigin.x - RADAR_MIN_X) / RADAR_TILE_SIZE);
 	int y = Ceil((RADAR_NUM_TILES - 1) - (vec2DRadarOrigin.y - RADAR_MIN_Y) / RADAR_TILE_SIZE);
 	StreamRadarSections(x, y);
@@ -724,56 +692,17 @@ void CRadar::DrawRadarMap()
 	DrawRadarSection(x + 1, y + 1);
 }
 
-void CRadar::DrawRadarMask() 
-{ 
-	CVector2D corners[4] = {
-		CVector2D(1.0f, -1.0f),
-		CVector2D(1.0f, 1.0f),
-		CVector2D(-1.0f, 1.0f),
-		CVector2D(-1.0, -1.0f)
-	};
-
-	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, (void*)nil);
-	RwRenderStateSet(rwRENDERSTATEFOGENABLE, (void*)FALSE);
-	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERLINEAR);
-	RwRenderStateSet(rwRENDERSTATESHADEMODE, (void*)rwSHADEMODEFLAT);
-	RwRenderStateSet(rwRENDERSTATEZTESTENABLE, (void*)FALSE);
-	RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, (void*)TRUE);
-	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
-#if !defined(GTA_PS2_STUFF) && defined(RWLIBS)
-	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
-	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
-	RwD3D8SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
-#else
-	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDZERO);
-	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDONE);
-#endif
-
-	CVector2D out[8];
-	CVector2D in;
-
-	// Draw the shape we want to mask out from the radar in four segments
-	for (int i = 0; i < 4; i++) {
-		// First point is always the corner itself
-		in.x = corners[i].x;
-		in.y = corners[i].y;
-		TransformRadarPointToScreenSpace(out[0], in);
-
-		// Then generate a quarter of the circle
-		for (int j = 0; j < 7; j++) {
-			in.x = corners[i].x * Cos(j * (PI / 2.0f / 6.0f));
-			in.y = corners[i].y * Sin(j * (PI / 2.0f / 6.0f));
-			TransformRadarPointToScreenSpace(out[j + 1], in);
-		};
-
-		CSprite2d::SetMaskVertices(8, (float *)out);
-		RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, CSprite2d::GetVertices(), 8);
-	}
-#if !defined(GTA_PS2_STUFF) && defined(RWLIBS)
-	RwD3D8SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
-#endif
-
+// =========================================================================
+// --- POTATO EDITION: RADAR CUADRADO PARA AHORRO DE FILLRATE ---
+// =========================================================================
+void CRadar::DrawRadarMask()
+{
+	// Vaciado por completo.
+	// El juego dibujaba un enorme c�rculo transparente (Alfa) en cada frame 
+	// para ocultar las esquinas cuadradas del mapa. Al eliminar esto, el 
+	// radar se ver� cuadrado, �pero salvar�s enormes cantidades de Fillrate en la GPU!
 }
+// =========================================================================
 
 void CRadar::DrawRadarSection(int32 x, int32 y)
 {
@@ -799,8 +728,6 @@ void CRadar::DrawRadarSection(int32 x, int32 y)
 
 	numVertices = ClipRadarPoly(radarPoly, radarCorners);
 
-	// FIX: can return earlier here
-//	if(numVertices == 0)
 	if (numVertices < 3)
 		return;
 
@@ -813,22 +740,36 @@ void CRadar::DrawRadarSection(int32 x, int32 y)
 	if (CTheScripts::bPlayerIsInTheStatium) {
 		RwRenderStateSet(rwRENDERSTATETEXTURERASTER, nil);
 		CSprite2d::SetVertices(numVertices, (float*)screenPoly, (float*)texCoords, CRGBA(204, 204, 204, 255));
-	} else {
+	}
+	else {
 		RwRenderStateSet(rwRENDERSTATETEXTURERASTER, RwTextureGetRaster(texture));
 		CSprite2d::SetVertices(numVertices, (float*)screenPoly, (float*)texCoords, CRGBA(255, 255, 255, 255));
 	}
 
-	// check done above now
-//	if(numVertices > 2)
 	RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, CSprite2d::GetVertices(), numVertices);
 }
 
 void CRadar::DrawRadarSprite(uint16 sprite, float x, float y, uint8 alpha)
 {
 #ifdef MAP_ENHANCEMENTS
-	if(sprite == RADAR_SPRITE_WAYPOINT) alpha = 255;
+	if (sprite == RADAR_SPRITE_WAYPOINT) alpha = 255;
 #endif
-	RadarSprites[sprite]->Draw(CRect(x - SCREEN_SCALE_X(8.0f), y - SCREEN_SCALE_Y(8.0f), x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(8.0f)), CRGBA(255, 255, 255, alpha));
+
+	// --- POTATO HACK: BYPASS DIRECTO A LA GPU ---
+	CRect rect(x - SCREEN_SCALE_X(8.0f), y - SCREEN_SCALE_Y(8.0f), x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(8.0f));
+	CRGBA col(255, 255, 255, 255);
+	CSprite2d::SetVertices(rect, col, col, col, col, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, RwTextureGetRaster(RadarSprites[sprite]->m_pTexture));
+
+	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)FALSE);
+	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDONE);
+	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDZERO);
+
+	RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, CSprite2d::GetVertices(), 4);
+
+	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
+	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
+	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
 
 	if (FrontEndMenuManager.m_bMenuMapActive) {
 		bool alreadyThere = false;
@@ -959,32 +900,44 @@ CRadar::Initialise()
 	}
 
 	m_radarRange = 350.0f;
-	for (int i = 0; i < 64; i++) 
+	for (int i = 0; i < 64; i++)
 		gRadarTxdIds[i] = CTxdStore::FindTxdSlot(gRadarTexNames[i]);
 }
 
+// =========================================================================
+// --- POTATO EDITION: L�MITES CUADRADOS PARA LOS ICONOS (BLIPS) ---
+// =========================================================================
 float CRadar::LimitRadarPoint(CVector2D &point)
 {
-	float dist, invdist;
+	float dist;
 
-	dist = point.Magnitude();
+	dist = point.Magnitude(); // Guardamos la distancia real
 
 	if (FrontEndMenuManager.m_bMenuMapActive)
-		return dist;
+		return dist; // En el men� de pausa el mapa es gigante, no se limita
 
-	if (dist > 1.0f) {
-		invdist = 1.0f / dist;
+					 // Buscamos cu�l es la coordenada m�s lejana al centro (X o Y)
+	float max_comp = Max(Abs(point.x), Abs(point.y));
+
+	if (max_comp > 1.0f) {
+		// Si el icono sale del cuadrado, lo dividimos por su componente m�s grande.
+		// Esto lo proyecta exactamente contra la pared plana del radar cuadrado.
+		float invdist = 1.0f / max_comp;
 		point.x *= invdist;
 		point.y *= invdist;
+
+		return max_comp; // Retornamos un valor > 1.0 para que el icono se ponga semi-transparente
 	}
+
 	return dist;
 }
+// =========================================================================
 
 void CRadar::LoadAllRadarBlips(uint8 *buf, uint32 size)
 {
 	Initialise();
-INITSAVEBUF
-	CheckSaveHeader(buf, 'R', 'D', 'R', '\0', size - SAVE_HEADER_SIZE);
+	INITSAVEBUF
+		CheckSaveHeader(buf, 'R', 'D', 'R', '\0', size - SAVE_HEADER_SIZE);
 
 	for (int i = 0; i < NUMRADARBLIPS; i++) {
 		ReadSaveBuf(&ms_RadarTrace[i].m_nColor, buf);
@@ -1004,15 +957,15 @@ INITSAVEBUF
 		ReadSaveBuf(&ms_RadarTrace[i].m_eRadarSprite, buf);
 	}
 
-VALIDATESAVEBUF(size);
+	VALIDATESAVEBUF(size);
 }
 
 void CRadar::SaveAllRadarBlips(uint8 *buf, uint32 *size)
 {
 	*size = SAVE_HEADER_SIZE + NUMRADARBLIPS * sizeof(sRadarTraceSave);
 
-INITSAVEBUF
-	WriteSaveHeader(buf, 'R', 'D', 'R', '\0', *size - SAVE_HEADER_SIZE);
+	INITSAVEBUF
+		WriteSaveHeader(buf, 'R', 'D', 'R', '\0', *size - SAVE_HEADER_SIZE);
 
 #ifdef MAP_ENHANCEMENTS
 	bool bWaypointDeleted = false;
@@ -1024,7 +977,7 @@ INITSAVEBUF
 #endif
 
 	for (int i = 0; i < NUMRADARBLIPS; i++) {
-		sRadarTraceSave *saveStruct = (sRadarTraceSave*) buf;
+		sRadarTraceSave *saveStruct = (sRadarTraceSave*)buf;
 
 		saveStruct->m_nColor = ms_RadarTrace[i].m_nColor;
 		saveStruct->m_Radius = ms_RadarTrace[i].m_Radius;
@@ -1045,11 +998,11 @@ INITSAVEBUF
 	}
 
 #ifdef MAP_ENHANCEMENTS
-	if(bWaypointDeleted)
+	if (bWaypointDeleted)
 		ToggleTargetMarker(TargetMarkerPos.x, TargetMarkerPos.y);
 #endif
 
-VALIDATESAVEBUF(*size);
+	VALIDATESAVEBUF(*size);
 }
 
 void
@@ -1098,8 +1051,7 @@ CRadar::LoadTextures()
 	RadioWaveSprite.SetTexture("RWave");
 #ifdef MAP_ENHANCEMENTS
 	WaypointSprite.SetTexture("radar_waypoint");
-	if(!WaypointSprite.m_pTexture) {
-		// create the texture if it's missing in TXD
+	if (!WaypointSprite.m_pTexture) {
 #define WAYPOINT_R (255)
 #define WAYPOINT_G (72)
 #define WAYPOINT_B (77)
@@ -1107,23 +1059,23 @@ CRadar::LoadTextures()
 		RwRaster *raster = RwRasterCreate(16, 16, 0, rwRASTERTYPETEXTURE | rwRASTERFORMAT8888);
 
 		RwUInt32 *pixels = (RwUInt32 *)RwRasterLock(raster, 0, rwRASTERLOCKWRITE);
-		for(int x = 0; x < 16; x++)
-			for(int y = 0; y < 16; y++)
+		for (int x = 0; x < 16; x++)
+			for (int y = 0; y < 16; y++)
 			{
 				int x2 = x < 8 ? x : 7 - (x & 7);
 				int y2 = y < 8 ? y : 7 - (y & 7);
-				if ((y2 >= 4 && x2 >= 4) // square in the center is transparent
-					|| (x2 < 2 && y2 == 0) // two pixels on each side of first/last line are transparent
-					|| (x2 < 1 && y2 == 1)) // one pixel on each side of second to first/last line is transparent
+				if ((y2 >= 4 && x2 >= 4)
+					|| (x2 < 2 && y2 == 0)
+					|| (x2 < 1 && y2 == 1))
 					pixels[x + y * 16] = 0;
-				else if((x2 == 2 && y2 >= 2)|| (y2 == 2 && x2 >= 2) )// colored square inside
+				else if ((x2 == 2 && y2 >= 2) || (y2 == 2 && x2 >= 2))
 #ifdef RW_GL3
 					pixels[x + y * 16] = WAYPOINT_R | (WAYPOINT_G << 8) | (WAYPOINT_B << 16) | (255 << 24);
 #else
 					pixels[x + y * 16] = WAYPOINT_B | (WAYPOINT_G << 8) | (WAYPOINT_R << 16) | (255 << 24);
 #endif
 				else
-					pixels[x + y * 16] = 0xFF000000; // black
+					pixels[x + y * 16] = 0xFF000000;
 			}
 		RwRasterUnlock(raster);
 		WaypointSprite.m_pTexture = RwTextureCreate(raster);
@@ -1377,7 +1329,8 @@ void CRadar::TransformRadarPointToScreenSpace(CVector2D &out, const CVector2D &i
 	if (FrontEndMenuManager.m_bMenuMapActive) {
 		out.x = (FrontEndMenuManager.m_fMapCenterX - FrontEndMenuManager.m_fMapSize) + (MENU_MAP_LENGTH / 2 + MENU_MAP_LEFT_OFFSET + in.x) * FrontEndMenuManager.m_fMapSize * MENU_MAP_WIDTH_SCALE * 2.0f / MENU_MAP_LENGTH;
 		out.y = (FrontEndMenuManager.m_fMapCenterY - FrontEndMenuManager.m_fMapSize) + (MENU_MAP_LENGTH / 2 - MENU_MAP_TOP_OFFSET - in.y) * FrontEndMenuManager.m_fMapSize * MENU_MAP_HEIGHT_SCALE * 2.0f / MENU_MAP_LENGTH;
-	} else {
+	}
+	else {
 #ifdef FIX_BUGS
 		out.x = (in.x + 1.0f) * 0.5f * SCREEN_SCALE_X(RADAR_WIDTH) + SCREEN_SCALE_X(RADAR_LEFT);
 #else
@@ -1403,19 +1356,20 @@ void CRadar::TransformRealWorldPointToRadarSpace(CVector2D &out, const CVector2D
 void
 CRadar::CalculateCachedSinCos()
 {
-	if (/*TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOPDOWN || TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_TOP_DOWN_PED || */
-		FrontEndMenuManager.m_bMenuMapActive ) {
+	if (FrontEndMenuManager.m_bMenuMapActive) {
 		cachedSin = 0.0f;
 		cachedCos = 1.0f;
-	} else if (TheCamera.GetLookDirection() == LOOKING_FORWARD) {
+	}
+	else if (TheCamera.GetLookDirection() == LOOKING_FORWARD) {
 		cachedSin = Sin(TheCamera.GetForward().Heading());
 		cachedCos = Cos(TheCamera.GetForward().Heading());
-	} else {
+	}
+	else {
 		CVector forward;
 
 		if (TheCamera.Cams[TheCamera.ActiveCam].Mode == CCam::MODE_1STPERSON) {
 			forward = TheCamera.Cams[TheCamera.ActiveCam].CamTargetEntity->GetForward();
-			forward.Normalise();	// a bit useless...
+			forward.Normalise();
 		}
 		else
 			forward = TheCamera.Cams[TheCamera.ActiveCam].CamTargetEntity->GetPosition() - TheCamera.Cams[TheCamera.ActiveCam].SourceBeforeLookBehind;
@@ -1431,7 +1385,7 @@ CRadar::InitFrontEndMap()
 	CalculateCachedSinCos();
 	vec2DRadarOrigin.x = 0.0f;
 	vec2DRadarOrigin.y = 0.0f;
-	m_radarRange = MENU_MAP_LENGTH_UNIT; // just affects the multiplier in TransformRadarPointToScreenSpace
+	m_radarRange = MENU_MAP_LENGTH_UNIT;
 	for (int i = 0; i < NUM_MAP_LEGENDS; i++) {
 		MapLegendList[i] = RADAR_SPRITE_NONE;
 	}
@@ -1451,7 +1405,8 @@ CRadar::DrawYouAreHereSprite(float x, float y)
 			lastChange = CTimer::GetTimeInMillisecondsPauseMode();
 			show = !show;
 		}
-	} else {
+	}
+	else {
 		if (CTimer::GetTimeInMillisecondsPauseMode() - lastChange > 200) {
 			lastChange = CTimer::GetTimeInMillisecondsPauseMode();
 			show = !show;
@@ -1491,14 +1446,14 @@ CRadar::ToggleTargetMarker(float x, float y)
 {
 	if (TargetMarkerId == -1) {
 		int nextBlip;
-		for (nextBlip = NUMRADARBLIPS-1; nextBlip >= 0; nextBlip--) {
+		for (nextBlip = NUMRADARBLIPS - 1; nextBlip >= 0; nextBlip--) {
 			if (!ms_RadarTrace[nextBlip].m_bInUse)
 				break;
 		}
-		
+
 		if (nextBlip == 0)
 			return;
-			
+
 		ms_RadarTrace[nextBlip].m_eBlipType = BLIP_COORD;
 		ms_RadarTrace[nextBlip].m_nColor = RADAR_TRACE_GRAY;
 		ms_RadarTrace[nextBlip].m_bDim = 0;
@@ -1513,7 +1468,8 @@ CRadar::ToggleTargetMarker(float x, float y)
 		ms_RadarTrace[nextBlip].m_eBlipDisplay = BLIP_DISPLAY_BLIP_ONLY;
 		ms_RadarTrace[nextBlip].m_eRadarSprite = RADAR_SPRITE_WAYPOINT;
 		TargetMarkerId = CRadar::GetNewUniqueBlipIndex(nextBlip);
-	} else {
+	}
+	else {
 		ClearBlip(TargetMarkerId);
 		TargetMarkerId = -1;
 	}
@@ -1527,21 +1483,21 @@ CRadar::DrawEntityBlip(int32 blipId)
 	CVector2D in;
 	CEntity *blipEntity;
 	switch (ms_RadarTrace[blipId].m_eBlipType) {
-		case BLIP_CAR:
-			blipEntity = CPools::GetVehiclePool()->GetAt(ms_RadarTrace[blipId].m_nEntityHandle);
-			break;
-		case BLIP_CHAR:
-			blipEntity = CPools::GetPedPool()->GetAt(ms_RadarTrace[blipId].m_nEntityHandle);
-			if (blipEntity != nil) {
-				if (((CPed*)blipEntity)->InVehicle())
-					blipEntity = ((CPed*)blipEntity)->m_pMyVehicle;
-			}
-			break;
-		case BLIP_OBJECT:
-			blipEntity = CPools::GetObjectPool()->GetAt(ms_RadarTrace[blipId].m_nEntityHandle);
-			break;
-		default:
-			break;
+	case BLIP_CAR:
+		blipEntity = CPools::GetVehiclePool()->GetAt(ms_RadarTrace[blipId].m_nEntityHandle);
+		break;
+	case BLIP_CHAR:
+		blipEntity = CPools::GetPedPool()->GetAt(ms_RadarTrace[blipId].m_nEntityHandle);
+		if (blipEntity != nil) {
+			if (((CPed*)blipEntity)->InVehicle())
+				blipEntity = ((CPed*)blipEntity)->m_pMyVehicle;
+		}
+		break;
+	case BLIP_OBJECT:
+		blipEntity = CPools::GetObjectPool()->GetAt(ms_RadarTrace[blipId].m_nEntityHandle);
+		break;
+	default:
+		break;
 	}
 	if (blipEntity) {
 		uint32 color = GetRadarTraceColour(ms_RadarTrace[blipId].m_nColor, ms_RadarTrace[blipId].m_bDim);
@@ -1560,7 +1516,8 @@ CRadar::DrawEntityBlip(int32 blipId)
 			if (!ms_RadarTrace[blipId].m_bShortRange || dist <= 1.0f || FrontEndMenuManager.m_bMenuMapActive) {
 				if (ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_NONE) {
 					DrawRadarSprite(ms_RadarTrace[blipId].m_eRadarSprite, out.x, out.y, CalculateBlipAlpha(dist));
-				} else {
+				}
+				else {
 					const CVector& pos = FindPlayerCentreOfWorld_NoSniperShift();
 					const CVector& blipPos = blipEntity->GetPosition();
 					uint8 mode = BLIP_MODE_TRIANGULAR_UP;
@@ -1611,7 +1568,8 @@ CRadar::DrawCoordBlip(int32 blipId)
 			if (!ms_RadarTrace[blipId].m_bShortRange || dist <= 1.0f || FrontEndMenuManager.m_bMenuMapActive) {
 				if (ms_RadarTrace[blipId].m_eRadarSprite != RADAR_SPRITE_NONE) {
 					DrawRadarSprite(ms_RadarTrace[blipId].m_eRadarSprite, out.x, out.y, CalculateBlipAlpha(dist));
-				} else {
+				}
+				else {
 					const CVector& pos = FindPlayerCentreOfWorld_NoSniperShift();
 					const CVector& blipPos = ms_RadarTrace[blipId].m_vecPos;
 					uint8 mode = BLIP_MODE_TRIANGULAR_UP;
@@ -1649,162 +1607,164 @@ CRadar::DrawLegend(int32 x, int32 y, int32 sprite)
 		CRGBA color;
 		if (sprite == -1) {
 			color = ArrowBlipColour1;
-		} else {
+		}
+		else {
 			color = ArrowBlipColour2;
 		}
 
 		if (CTimer::GetTimeInMillisecondsPauseMode() - lastChange > 600) {
 			lastChange = CTimer::GetTimeInMillisecondsPauseMode();
-			if ( blipMode == 2 )
+			if (blipMode == 2)
 				blipMode = 0;
 			else
 				++blipMode;
 		}
 
 		switch (blipMode) {
-			case BLIP_MODE_TRIANGULAR_UP:
-				CSprite2d::Draw2DPolygon(x + SCREEN_SCALE_X(14.0f), y + SCREEN_SCALE_Y(13.0f), x + SCREEN_SCALE_X(2.0f), y + SCREEN_SCALE_Y(13.0f), x + SCREEN_SCALE_X(8.f), y + SCREEN_SCALE_Y(2.0f), x + SCREEN_SCALE_X(8.f), y + SCREEN_SCALE_Y(2.0f), CRGBA(0, 0, 0, 255));
-				CSprite2d::Draw2DPolygon(x + SCREEN_SCALE_X(12.0f), y + SCREEN_SCALE_Y(12.0f), x + SCREEN_SCALE_X(4.0f), y + SCREEN_SCALE_Y(12.0f), x + SCREEN_SCALE_X(8.f), y + SCREEN_SCALE_Y(4.0f), x + SCREEN_SCALE_X(8.f), y + SCREEN_SCALE_Y(4.0f), color);
-				break;
-			case BLIP_MODE_TRIANGULAR_DOWN:
-				CSprite2d::Draw2DPolygon(x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(14.0f), x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(14.0f), x + SCREEN_SCALE_X(2.f), y + SCREEN_SCALE_Y(3.0f), x + SCREEN_SCALE_X(2.f), y + SCREEN_SCALE_Y(3.0f), CRGBA(0, 0, 0, 255));
-				CSprite2d::Draw2DPolygon(x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(12.0f), x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(12.0f), x + SCREEN_SCALE_X(12.f), y + SCREEN_SCALE_Y(4.0f), x + SCREEN_SCALE_X(4.f), y + SCREEN_SCALE_Y(4.0f), color);
-				break;
-			case BLIP_MODE_SQUARE:
-				CSprite2d::DrawRect(CRect(x + SCREEN_SCALE_X(4.0f), y + SCREEN_SCALE_Y(3.0f), SCREEN_SCALE_X(12.0f) + x, SCREEN_SCALE_Y(12.0f) + y), CRGBA(0, 0, 0, 255));
-				CSprite2d::DrawRect(CRect(x + SCREEN_SCALE_X(5.0f), y + SCREEN_SCALE_Y(4.0f), SCREEN_SCALE_X(11.0f) + x, SCREEN_SCALE_Y(11.0f) + y), color);
-				break;
+		case BLIP_MODE_TRIANGULAR_UP:
+			CSprite2d::Draw2DPolygon(x + SCREEN_SCALE_X(14.0f), y + SCREEN_SCALE_Y(13.0f), x + SCREEN_SCALE_X(2.0f), y + SCREEN_SCALE_Y(13.0f), x + SCREEN_SCALE_X(8.f), y + SCREEN_SCALE_Y(2.0f), x + SCREEN_SCALE_X(8.f), y + SCREEN_SCALE_Y(2.0f), CRGBA(0, 0, 0, 255));
+			CSprite2d::Draw2DPolygon(x + SCREEN_SCALE_X(12.0f), y + SCREEN_SCALE_Y(12.0f), x + SCREEN_SCALE_X(4.0f), y + SCREEN_SCALE_Y(12.0f), x + SCREEN_SCALE_X(8.f), y + SCREEN_SCALE_Y(4.0f), x + SCREEN_SCALE_X(8.f), y + SCREEN_SCALE_Y(4.0f), color);
+			break;
+		case BLIP_MODE_TRIANGULAR_DOWN:
+			CSprite2d::Draw2DPolygon(x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(14.0f), x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(14.0f), x + SCREEN_SCALE_X(2.f), y + SCREEN_SCALE_Y(3.0f), x + SCREEN_SCALE_X(2.f), y + SCREEN_SCALE_Y(3.0f), CRGBA(0, 0, 0, 255));
+			CSprite2d::Draw2DPolygon(x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(12.0f), x + SCREEN_SCALE_X(8.0f), y + SCREEN_SCALE_Y(12.0f), x + SCREEN_SCALE_X(12.f), y + SCREEN_SCALE_Y(4.0f), x + SCREEN_SCALE_X(4.f), y + SCREEN_SCALE_Y(4.0f), color);
+			break;
+		case BLIP_MODE_SQUARE:
+			CSprite2d::DrawRect(CRect(x + SCREEN_SCALE_X(4.0f), y + SCREEN_SCALE_Y(3.0f), SCREEN_SCALE_X(12.0f) + x, SCREEN_SCALE_Y(12.0f) + y), CRGBA(0, 0, 0, 255));
+			CSprite2d::DrawRect(CRect(x + SCREEN_SCALE_X(5.0f), y + SCREEN_SCALE_Y(4.0f), SCREEN_SCALE_X(11.0f) + x, SCREEN_SCALE_Y(11.0f) + y), color);
+			break;
 		}
 
-	} else {
+	}
+	else {
 		RadarSprites[sprite]->Draw(CRect(x, y, x + SCREEN_SCALE_X(16.f), y + SCREEN_SCALE_X(16.f)), CRGBA(255, 255, 255, 255));
 	}
 
 	wchar *text;
-	switch ( sprite ) {
-		case RADAR_SPRITE_ENTITY_BLIP:
-			text = TheText.Get("LG_38");
+	switch (sprite) {
+	case RADAR_SPRITE_ENTITY_BLIP:
+		text = TheText.Get("LG_38");
 		break;
-		case RADAR_SPRITE_COORD_BLIP:
-			text = TheText.Get("LG_35");
+	case RADAR_SPRITE_COORD_BLIP:
+		text = TheText.Get("LG_35");
 		break;
-		case RADAR_SPRITE_MAP_HERE:
-			text = TheText.Get("LG_01");
+	case RADAR_SPRITE_MAP_HERE:
+		text = TheText.Get("LG_01");
 		break;
-		case RADAR_SPRITE_AVERY:
-			text = TheText.Get("LG_02");
+	case RADAR_SPRITE_AVERY:
+		text = TheText.Get("LG_02");
 		break;
-		case RADAR_SPRITE_BIKER:
-			text = TheText.Get("LG_03");
+	case RADAR_SPRITE_BIKER:
+		text = TheText.Get("LG_03");
 		break;
-		case RADAR_SPRITE_CORTEZ:
-			text = TheText.Get("LG_04");
+	case RADAR_SPRITE_CORTEZ:
+		text = TheText.Get("LG_04");
 		break;
-		case RADAR_SPRITE_DIAZ:
-			text = TheText.Get("LG_05");
+	case RADAR_SPRITE_DIAZ:
+		text = TheText.Get("LG_05");
 		break;
-		case RADAR_SPRITE_KENT:
-			text = TheText.Get("LG_06");
+	case RADAR_SPRITE_KENT:
+		text = TheText.Get("LG_06");
 		break;
-		case RADAR_SPRITE_LAWYER:
-			text = TheText.Get("LG_07");
+	case RADAR_SPRITE_LAWYER:
+		text = TheText.Get("LG_07");
 		break;
-		case RADAR_SPRITE_PHIL:
-			text = TheText.Get("LG_08");
+	case RADAR_SPRITE_PHIL:
+		text = TheText.Get("LG_08");
 		break;
-		case RADAR_SPRITE_BIKERS:
-			text = TheText.Get("LG_03");
+	case RADAR_SPRITE_BIKERS:
+		text = TheText.Get("LG_03");
 		break;
-		case RADAR_SPRITE_BOATYARD:
-			text = TheText.Get("LG_09");
+	case RADAR_SPRITE_BOATYARD:
+		text = TheText.Get("LG_09");
 		break;
-		case RADAR_SPRITE_MALIBU_CLUB:
-			text = TheText.Get("LG_10");
+	case RADAR_SPRITE_MALIBU_CLUB:
+		text = TheText.Get("LG_10");
 		break;
-		case RADAR_SPRITE_CUBANS:
-			text = TheText.Get("LG_11");
+	case RADAR_SPRITE_CUBANS:
+		text = TheText.Get("LG_11");
 		break;
-		case RADAR_SPRITE_FILM:
-			text = TheText.Get("LG_12");
+	case RADAR_SPRITE_FILM:
+		text = TheText.Get("LG_12");
 		break;
-		case RADAR_SPRITE_GUN:
-			text = TheText.Get("LG_13");
+	case RADAR_SPRITE_GUN:
+		text = TheText.Get("LG_13");
 		break;
-		case RADAR_SPRITE_HAITIANS:
-			text = TheText.Get("LG_14");
+	case RADAR_SPRITE_HAITIANS:
+		text = TheText.Get("LG_14");
 		break;
-		case RADAR_SPRITE_HARDWARE:
-			text = TheText.Get("LG_15");
+	case RADAR_SPRITE_HARDWARE:
+		text = TheText.Get("LG_15");
 		break;
-		case RADAR_SPRITE_SAVE:
-			text = TheText.Get("LG_16");
+	case RADAR_SPRITE_SAVE:
+		text = TheText.Get("LG_16");
 		break;
-		case RADAR_SPRITE_STRIP:
-			text = TheText.Get("LG_37");
+	case RADAR_SPRITE_STRIP:
+		text = TheText.Get("LG_37");
 		break;
-		case RADAR_SPRITE_ICE:
-			text = TheText.Get("LG_17");
+	case RADAR_SPRITE_ICE:
+		text = TheText.Get("LG_17");
 		break;
-		case RADAR_SPRITE_KCABS:
-			text = TheText.Get("LG_18");
+	case RADAR_SPRITE_KCABS:
+		text = TheText.Get("LG_18");
 		break;
-		case RADAR_SPRITE_LOVEFIST:
-			text = TheText.Get("LG_19");
+	case RADAR_SPRITE_LOVEFIST:
+		text = TheText.Get("LG_19");
 		break;
-		case RADAR_SPRITE_PRINTWORKS:
-			text = TheText.Get("LG_20");
+	case RADAR_SPRITE_PRINTWORKS:
+		text = TheText.Get("LG_20");
 		break;
-		case RADAR_SPRITE_PROPERTY:
-			text = TheText.Get("LG_21");
+	case RADAR_SPRITE_PROPERTY:
+		text = TheText.Get("LG_21");
 		break;
-		case RADAR_SPRITE_SUNYARD:
-			text = TheText.Get("LG_36");
+	case RADAR_SPRITE_SUNYARD:
+		text = TheText.Get("LG_36");
 		break;
-		case RADAR_SPRITE_SPRAY:
-			text = TheText.Get("LG_22");
+	case RADAR_SPRITE_SPRAY:
+		text = TheText.Get("LG_22");
 		break;
-		case RADAR_SPRITE_TSHIRT:
-			text = TheText.Get("LG_23");
+	case RADAR_SPRITE_TSHIRT:
+		text = TheText.Get("LG_23");
 		break;
-		case RADAR_SPRITE_TOMMY:
-			text = TheText.Get("LG_24");
+	case RADAR_SPRITE_TOMMY:
+		text = TheText.Get("LG_24");
 		break;
-		case RADAR_SPRITE_PHONE:
-			text = TheText.Get("LG_25");
+	case RADAR_SPRITE_PHONE:
+		text = TheText.Get("LG_25");
 		break;
-		case RADAR_SPRITE_RADIO_WILDSTYLE:
-			text = TheText.Get("LG_26");
+	case RADAR_SPRITE_RADIO_WILDSTYLE:
+		text = TheText.Get("LG_26");
 		break;
-		case RADAR_SPRITE_RADIO_FLASH:
-			text = TheText.Get("LG_27");
+	case RADAR_SPRITE_RADIO_FLASH:
+		text = TheText.Get("LG_27");
 		break;
-		case RADAR_SPRITE_RADIO_KCHAT:
-			text = TheText.Get("LG_28");
+	case RADAR_SPRITE_RADIO_KCHAT:
+		text = TheText.Get("LG_28");
 		break;
-		case RADAR_SPRITE_RADIO_FEVER:
-			text = TheText.Get("LG_29");
+	case RADAR_SPRITE_RADIO_FEVER:
+		text = TheText.Get("LG_29");
 		break;
-		case RADAR_SPRITE_RADIO_VROCK:
-			text = TheText.Get("LG_30");
+	case RADAR_SPRITE_RADIO_VROCK:
+		text = TheText.Get("LG_30");
 		break;
-		case RADAR_SPRITE_RADIO_VCPR:
-			text = TheText.Get("LG_31");
+	case RADAR_SPRITE_RADIO_VCPR:
+		text = TheText.Get("LG_31");
 		break;
-		case RADAR_SPRITE_RADIO_ESPANTOSO:
-			text = TheText.Get("LG_32");
+	case RADAR_SPRITE_RADIO_ESPANTOSO:
+		text = TheText.Get("LG_32");
 		break;
-		case RADAR_SPRITE_RADIO_EMOTION:
-			text = TheText.Get("LG_33");
+	case RADAR_SPRITE_RADIO_EMOTION:
+		text = TheText.Get("LG_33");
 		break;
-		case RADAR_SPRITE_RADIO_WAVE:
-			text = TheText.Get("LG_34");
+	case RADAR_SPRITE_RADIO_WAVE:
+		text = TheText.Get("LG_34");
 		break;
 #ifdef MAP_ENHANCEMENTS
-        case RADAR_SPRITE_WAYPOINT:
-			text = TheText.Get("LG_38");
+	case RADAR_SPRITE_WAYPOINT:
+		text = TheText.Get("LG_38");
 		break;
 #endif
-		default:
+	default:
 		break;
 	}
 	CFont::PrintString(SCREEN_SCALE_X(20.f) + x, SCREEN_SCALE_Y(3.0f) + y, text);

@@ -24,6 +24,7 @@
 #include "PedPlacement.h"
 #include "VarConsole.h"
 #include "SaveBuf.h"
+#include "Bones.h"
 
 #define PAD_MOVE_TO_GAME_WORLD_MOVE 60.0f
 
@@ -2265,3 +2266,59 @@ CPlayerPed::Load(uint8*& buf)
 #undef CopyFromBuf
 #undef CopyToBuf
 #endif
+
+// --- INICIO 1RA PERSONA: Ocultar Cuello y Cabeza (ESTABLE) ---
+void
+CPlayerPed::Render(void)
+{
+	bool bOculto = false;
+
+	// Matrices de copia de seguridad
+	RwMatrix matrizCabezaOriginal, matrizCuelloOriginal;
+	RwV3d escalaCero = { 0.0f, 0.0f, 0.0f };
+
+	RwMatrix* pMatrizCabeza = nil;
+	RwMatrix* pMatrizCuello = nil;
+
+	int16 camMode = TheCamera.Cams[TheCamera.ActiveCam].Mode;
+	if (camMode == CCam::MODE_1STPERSON ||
+		camMode == CCam::MODE_SNIPER ||
+		camMode == CCam::MODE_M16_1STPERSON ||
+		camMode == CCam::MODE_ROCKETLAUNCHER ||
+		camMode == CCam::MODE_HELICANNON_1STPERSON ||
+		camMode == CCam::MODE_CAMERA)
+	{
+		RpHAnimHierarchy* hier = GetAnimHierarchyFromSkinClump(GetClump());
+		if (hier) {
+			// Buscamos los IDs de la Cabeza y el Cuello
+			int32 idxCabeza = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_HEAD));
+			int32 idxCuello = RpHAnimIDGetIndex(hier, ConvertPedNode2BoneTag(PED_NECK));
+
+			// Si el cuello existe, lo encogemos
+			if (idxCuello != -1) {
+				pMatrizCuello = &RpHAnimHierarchyGetMatrixArray(hier)[idxCuello];
+				matrizCuelloOriginal = *pMatrizCuello;
+				RwMatrixScale(pMatrizCuello, &escalaCero, rwCOMBINEPRECONCAT);
+				bOculto = true;
+			}
+
+			// Si la cabeza existe, la encogemos (por seguridad adicional)
+			if (idxCabeza != -1) {
+				pMatrizCabeza = &RpHAnimHierarchyGetMatrixArray(hier)[idxCabeza];
+				matrizCabezaOriginal = *pMatrizCabeza;
+				RwMatrixScale(pMatrizCabeza, &escalaCero, rwCOMBINEPRECONCAT);
+				bOculto = true;
+			}
+		}
+	}
+
+	// Se dibuja a Tommy sin obstrucciones
+	CPed::Render();
+
+	// Restauramos las matrices originales exactamente como estaban
+	if (bOculto) {
+		if (pMatrizCabeza) *pMatrizCabeza = matrizCabezaOriginal;
+		if (pMatrizCuello) *pMatrizCuello = matrizCuelloOriginal;
+	}
+}
+// --- FIN 1RA PERSONA ---

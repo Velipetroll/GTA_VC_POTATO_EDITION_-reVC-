@@ -59,6 +59,11 @@ public:
 
 	CPlayerPed();
 	~CPlayerPed();
+
+	// --- INICIO MODIFICACIÓN 1RA PERSONA ---
+	virtual void Render(void);
+	// --- FIN MODIFICACIÓN ---
+
 	void SetMoveAnim() { };
 
 	void ReApplyMoveAnims(void);

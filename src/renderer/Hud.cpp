@@ -1,4 +1,4 @@
-#include "common.h"
+ï»¿#include "common.h"
 
 #include "Camera.h"
 #include "DMAudio.h"
@@ -441,7 +441,7 @@ void CHud::Draw()
 
 						RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, CSprite2d::GetVertices(), 4);
 
-						// Encender Alpha inmediatamente para salvar la tipografía
+						// Encender Alpha inmediatamente para salvar la tipografï¿½a
 						RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
 						RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
 						RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
@@ -468,7 +468,7 @@ void CHud::Draw()
 
 							RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, CSprite2d::GetVertices(), 4);
 
-							// Encender Alpha inmediatamente para salvar la tipografía
+							// Encender Alpha inmediatamente para salvar la tipografï¿½a
 							RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
 							RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
 							RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
@@ -502,7 +502,7 @@ void CHud::Draw()
 		if (m_EnergyLostState != FADED_OUT) {
 			CFont::SetBackgroundOff();
 			CFont::SetScale(SCREEN_SCALE_X(HUD_TEXT_SCALE_X), SCREEN_SCALE_Y(HUD_TEXT_SCALE_Y));
-			CFont::SetRightJustifyOff(); // Cambio a justificación izquierda
+			CFont::SetRightJustifyOff(); // Cambio a justificaciï¿½n izquierda
 			CFont::SetFontStyle(FONT_HEADING);
 			CFont::SetDropShadowPosition(2); CFont::SetDropColor(CRGBA(0, 0, 0, 255));
 

@@ -2994,57 +2994,82 @@ CAutomobile::Render(void)
 {
 	CVehicleModelInfo *mi = (CVehicleModelInfo*)CModelInfo::GetModelInfo(GetModelIndex());
 
+	// --- INICIO EFECTO INCANDESCENCIA (Extreme Optimization) ---
+	// Guardamos los colores originales del vehículo
+	uint8 colorOriginal1 = m_currentColour1;
+	uint8 colorOriginal2 = m_currentColour2;
+
+	// Si la salud es baja (a punto de explotar) y el coche no está destruido
+	if (m_fHealth < 250.0f && m_fHealth > 0.0f)
+	{
+		uint32 tiempoActual = CTimer::GetTimeInMilliseconds();
+
+		// Parpadeo cada 150ms
+		if ((tiempoActual / 150) % 2 == 0)
+		{
+			m_currentColour1 = 3; // ID 3: Rojo en carcols.dat
+			m_currentColour2 = 3;
+		}
+	}
+	// --- FIN EFECTO INCANDESCENCIA ---
+
+	// El motor ahora aplicará el color (ya sea el normal o el rojo de advertencia)
 	mi->SetVehicleColour(m_currentColour1, m_currentColour2);
 
-	if(IsRealHeli()){
+	if (IsRealHeli()) {
 		RpAtomic *atomic = nil;
-		int rotorAlpha = (1.5f - Min(1.7f*Max(m_aWheelSpeed[1],0.0f)/0.22f, 1.5f))*255.0f;
+		int rotorAlpha = (1.5f - Min(1.7f*Max(m_aWheelSpeed[1], 0.0f) / 0.22f, 1.5f))*255.0f;
 		rotorAlpha = Min(rotorAlpha, 255);
-		int blurAlpha = Max(1.5f*m_aWheelSpeed[1]/0.22f - 0.4f, 0.0f)*150.0f;
+		int blurAlpha = Max(1.5f*m_aWheelSpeed[1] / 0.22f - 0.4f, 0.0f)*150.0f;
 		blurAlpha = Min(blurAlpha, 150);
 
 		// Top rotor
-		if(m_aCarNodes[CAR_BONNET]){
+		if (m_aCarNodes[CAR_BONNET]) {
 			RwFrameForAllObjects(m_aCarNodes[CAR_BONNET], GetCurrentAtomicObjectCB, &atomic);
-			if(atomic)
+			if (atomic)
 				SetComponentAtomicAlpha(atomic, rotorAlpha);
 		}
 		atomic = nil;
 		// Rear rotor
-		if(m_aCarNodes[CAR_BOOT]){
+		if (m_aCarNodes[CAR_BOOT]) {
 			RwFrameForAllObjects(m_aCarNodes[CAR_BOOT], GetCurrentAtomicObjectCB, &atomic);
-			if(atomic)
+			if (atomic)
 				SetComponentAtomicAlpha(atomic, rotorAlpha);
 		}
 		atomic = nil;
 		// Blurred top rotor
-		if(m_aCarNodes[CAR_WINDSCREEN]){
+		if (m_aCarNodes[CAR_WINDSCREEN]) {
 			RwFrameForAllObjects(m_aCarNodes[CAR_WINDSCREEN], GetCurrentAtomicObjectCB, &atomic);
-			if(atomic)
+			if (atomic)
 				SetComponentAtomicAlpha(atomic, blurAlpha);
 		}
 		atomic = nil;
 		// Blurred rear rotor
-		if(m_aCarNodes[CAR_BUMP_REAR]){
+		if (m_aCarNodes[CAR_BUMP_REAR]) {
 			RwFrameForAllObjects(m_aCarNodes[CAR_BUMP_REAR], GetCurrentAtomicObjectCB, &atomic);
-			if(atomic)
+			if (atomic)
 				SetComponentAtomicAlpha(atomic, blurAlpha);
 		}
 	}
 
-	if(CVehicle::bWheelsOnlyCheat){
+	if (CVehicle::bWheelsOnlyCheat) {
 		RpAtomicRender((RpAtomic*)GetFirstObject(m_aCarNodes[CAR_WHEEL_RB]));
 		RpAtomicRender((RpAtomic*)GetFirstObject(m_aCarNodes[CAR_WHEEL_LB]));
 		RpAtomicRender((RpAtomic*)GetFirstObject(m_aCarNodes[CAR_WHEEL_RF]));
 		RpAtomicRender((RpAtomic*)GetFirstObject(m_aCarNodes[CAR_WHEEL_LF]));
-		if(m_aCarNodes[CAR_WHEEL_RM])
+		if (m_aCarNodes[CAR_WHEEL_RM])
 			RpAtomicRender((RpAtomic*)GetFirstObject(m_aCarNodes[CAR_WHEEL_RM]));
-		if(m_aCarNodes[CAR_WHEEL_LM])
+		if (m_aCarNodes[CAR_WHEEL_LM])
 			RpAtomicRender((RpAtomic*)GetFirstObject(m_aCarNodes[CAR_WHEEL_LM]));
-	}else
+	}
+	else
 		CEntity::Render();
-}
 
+	// --- RESTAURACIÓN DEL COLOR ---
+	// Devolvemos las variables a la normalidad post-renderizado
+	m_currentColour1 = colorOriginal1;
+	m_currentColour2 = colorOriginal2;
+}
 int32
 CAutomobile::ProcessEntityCollision(CEntity *ent, CColPoint *colpoints)
 {
