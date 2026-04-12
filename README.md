@@ -86,9 +86,6 @@ Real 3D audio (Doppler effect, reverb, directional panning) eats precious CPU cy
 * **7.5 meters:** 50% Volume
 * **15+ meters:** 0% Volume (Radio shuts off)
 
-### 6. Seamless F11 Fullscreen Toggle (`src/skel/events.cpp`)
-Inside `HandleKeyDown(RsKeyStatus *keyStatus)`, we injected a new `case rsF11:` in the main OS keyboard event dispatcher. We directly invert `FrontEndMenuManager` booleans (`m_nPrefsWindowed` and `m_nSelectedScreenMode`) and call the external function `_psSelectScreenVM()`. This forces the API (D3D9/OpenGL) to destroy the window context and recreate the swapchain dynamically with the new resolution parameters, completely bypassing a main thread restart.
-
 ---
 
 ## 💾 Installation Guide
