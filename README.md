@@ -195,6 +195,14 @@ Please review our [Coding Style](https://github.com/mrxenginner/reVC/blob/miami/
 
 ## 📜 History
 
+# POTATO MOD
+
+"I have a netbook featuring low-power hardware from two decades ago—specifically an Intel Atom N450 processor and a GMA 3150 for graphics. Performance in any game is a disaster; it can't even handle Minecraft or the original GTA Vice City. This led me to think: why not create a mod to squeeze the absolute most out of this extremely limited hardware and share it with the community?"
+
+"Since I have almost zero programming knowledge for modifying source code, I initially relied on DeepSeek and later switched to Gemini. I started by creating a CLEO mod for the 2003 1.0 version, but CLEO isn't capable of cutting enough features. After some research, I remembered the reVC reverse engineering project, which allowed me to modify the game almost without limits (or at least, as much as librw would allow). I’ve made significant progress—at the lowest possible graphical settings, I’ve achieved a performance boost of over 200%. Additionally, I added several new useful features while managing to preserve the original 'essence' of the game."
+
+# re3
+
 The core `re3` project started in spring 2018 to test reversed collision/physics via DLL injection. After a dormant period, it was revived in May 2019, growing rapidly thanks to contributors like Fire_Head, shfil, erorcun, Nick007J, and Serge. By April 2020, we achieved a standalone executable.  
 
 `reVC` was born in May 2020 using the `re3` foundation and was considered complete by December of that year. The community continues to push the boundaries of classic RenderWare engine reverse engineering.
